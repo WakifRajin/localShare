@@ -1,4 +1,4 @@
-# localShare — local mesh workspace
+# localShare | local mesh workspace
 
 Chat, a live shared text doc, and file transfer between devices on the same
 network. No internet, no accounts, no cloud service — devices talk directly
