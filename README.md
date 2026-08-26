@@ -4,9 +4,6 @@ Chat, a live shared text doc, and file transfer between devices on the same
 network. No internet, no accounts, no cloud service — devices talk directly
 over WebRTC once connected.
 
-Open source by [WakifRajin](https://github.com/WakifRajin) —
-repo: <https://github.com/WakifRajin/localShare>
-
 ## Quick start (short 5-character codes)
 
 Requires [Node.js](https://nodejs.org) (any recent version) on **one** machine
