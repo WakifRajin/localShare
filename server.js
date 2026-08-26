@@ -10,13 +10,13 @@
  *  2. Runs a tiny rendezvous API so two browsers on the same network can trade
  *     WebRTC connection info using a short 5-character code instead of a huge
  *     pasted blob.
- *
+ 
  * IMPORTANT: this server never sees your chat, files, or shared text. Once two
  * browsers connect, all of that flows directly between them over WebRTC — this
  * script only helps them find each other, and forgets each code right after
  * it's used (or after 15 minutes, whichever comes first). It never talks to
  * the internet; it only needs to be reachable on your local network.
- *
+ 
  * Usage:
  *   node server.js            (defaults to port 8787)
  *   PORT=9000 node server.js  (custom port)
