@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050a07">
+<title>localShare — Local Mesh Workspace</title>
+<meta name="description" content="Chat, a live shared document and file transfer between devices on the same network — peer-to-peer over WebRTC, no accounts, no cloud.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305070a'/%3E%3Cpath d='M9 21a9 9 0 0 1 14 0M12.5 17.5a4.5 4.5 0 0 1 7 0' stroke='%2334ffa0' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='23' r='1.8' fill='%2334ffa0'/%3E%3C/svg%3E">
+<script>
+  // Applied before first paint to avoid a theme flash-of-wrong-colors on load.
+  (function(){
+    try{
+      var saved = localStorage.getItem('localshare_theme');
+      var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    }catch(e){ document.documentElement.setAttribute('data-theme', 'dark'); }
+  })();
+</script>
+<style>
+  :root{
+    --mono: ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    --radius: 10px;
+  }
+  /* ---------- Theme: dark (greenish accent on black) ---------- */
+  html[data-theme="dark"]{
+    --bg:#05070a; --bg-alt:#0a0e14; --panel:#10151d; --panel-alt:#161c26;
+    --border:#232b38; --text:#e7ecf2; --text-muted:#7c8ba1;
+    --accent:#34ffa0; --accent-dim:#1c8f5c; --accent-soft:rgba(52,255,160,.12);
+    --accent-contrast:#04150c; --terminal-bg:#04070a; --terminal-text:#34ffa0;
+    --warn:#ffb648; --danger:#ff5a68; --shadow:rgba(0,0,0,.5); --bg-glow:rgba(52,255,160,.05);
+  }
+  /* ---------- Theme: light (greenish accent on white/black text) ---------- */
+  html[data-theme="light"]{
+    --bg:#f4fbf6; --bg-alt:#eaf5ee; --panel:#ffffff; --panel-alt:#eef6f0;
+    --border:#cfe4d7; --text:#0d1710; --text-muted:#57705f;
+    --accent:#0e9f5c; --accent-dim:#0b7e49; --accent-soft:rgba(14,159,92,.12);
+    --accent-contrast:#f4fffa; --terminal-bg:#0b120d; --terminal-text:#34ffa0;
+    --warn:#a4650a; --danger:#c8323f; --shadow:rgba(20,50,35,.12); --bg-glow:rgba(14,159,92,.07);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 15% -10%, var(--bg-glow), transparent 40%),
+      var(--bg);
+    color:var(--text); font-family:var(--sans); height:100vh; height:100dvh; overflow:hidden;
+    display:flex; flex-direction:column;
+    transition: background-color .2s ease, color .2s ease;
+  }
+  button{ font-family:var(--sans); cursor:pointer; border:none; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  ::selection{ background:var(--accent-soft); color:var(--accent); }
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  .eyebrow{ font-family:var(--mono); font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+
+  /* ---------- Overlays: name gate + wizard ---------- */
+  .overlay{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background: rgba(3,5,8,.86); backdrop-filter: blur(6px); z-index:50; padding:20px;
+  }
+  .overlay.hidden{ display:none; }
+  html[data-theme="light"] .overlay{ background:rgba(210,230,217,.82); }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    max-width:480px; width:100%; padding:28px; position:relative;
+    box-shadow: 0 30px 60px var(--shadow);
+    max-height:calc(100dvh - 40px); overflow-y:auto;
+  }
+  .github-link{
+    display:inline-flex; align-items:center; gap:6px; color:var(--text-muted);
+    font-size:.78rem; text-decoration:none; border:1px solid var(--border);
+    padding:6px 10px; border-radius:20px; transition:.15s ease;
+  }
+  .github-link:hover{ color:var(--accent); border-color:var(--accent-dim); }
+  .github-link svg{ width:14px; height:14px; fill:currentColor; flex-shrink:0; }
+  .card-foot{ margin-top:18px; display:flex; justify-content:center; }
+  .theme-toggle{
+    background:var(--panel-alt); border:1px solid var(--border); color:var(--text-muted);
+    width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center;
+    justify-content:center; font-size:1rem; flex-shrink:0;
+  }
+  .theme-toggle:hover{ color:var(--accent); border-color:var(--accent-dim); }
+  .card h1{ font-size:1.4rem; letter-spacing:-.01em; margin-bottom:4px; }
+  .card .sub{ color:var(--text-muted); font-size:.88rem; margin-bottom:18px; line-height:1.5; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:.75rem; color:var(--text-muted); margin-bottom:6px; font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em;}
+  .field input[type=text]{
+    width:100%; padding:11px 12px; background:var(--bg-alt); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; font-size:.95rem;
+  }
+  textarea.code-box{
+    width:100%; height:110px; background:var(--bg-alt); color:var(--accent);
+    font-family:var(--mono); padding:12px; border:1px solid var(--border); border-radius:8px;
+    resize:none; font-size:.72rem; line-height:1.5; word-break:break-all;
+  }
+  textarea.code-box::placeholder{ color:var(--text-muted); }
+  .hint{ font-size:.8rem; color:var(--text-muted); margin:8px 0 12px; line-height:1.5; }
+  .btn-row{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .btn{
+    background:var(--panel-alt); color:var(--text); border:1px solid var(--border);
+    padding:10px 16px; border-radius:8px; font-weight:600; font-size:.88rem;
+    display:inline-flex; align-items:center; gap:7px; transition:.15s ease;
+  }
+  .btn:hover{ border-color:var(--accent-dim); color:var(--accent); }
+  .btn.primary{ background:var(--accent); color:var(--accent-contrast); border-color:var(--accent); }
+  .btn.primary:hover{ opacity:.88; color:var(--accent-contrast); }
+  .btn.danger{ color:var(--danger); }
+  .btn.danger:hover{ border-color:var(--danger); }
+  .btn.block{ width:100%; justify-content:center; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-icon{ padding:8px; border-radius:7px; background:transparent; border:1px solid transparent; color:var(--text-muted); }
+  .btn-icon:hover{ color:var(--accent); background:var(--accent-soft); }
+
+  .wizard-step{ display:none; }
+  .wizard-step.active{ display:block; animation:fadeUp .25s ease; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .choose-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+  .choose-opt{
+    background:var(--panel-alt); border:1px solid var(--border); border-radius:10px;
+    padding:18px 14px; text-align:left; transition:.15s; color:var(--text);
+  }
+  .choose-opt:hover{ border-color:var(--accent-dim); transform:translateY(-1px); }
+  .choose-opt .ico{ font-size:1.4rem; margin-bottom:8px; display:block; }
+  .choose-opt b{ display:block; font-size:.92rem; margin-bottom:3px; }
+  .choose-opt span{ font-size:.78rem; color:var(--text-muted); }
+  .wizard-close{ position:absolute; top:14px; right:14px; }
+  .step-tag{ font-family:var(--mono); font-size:.7rem; color:var(--accent); letter-spacing:.08em; }
+  .waiting-line{ display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--accent); margin-top:12px; }
+  .pulse{ width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 var(--accent-soft); animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(52,255,160,.45);} 70%{box-shadow:0 0 0 10px rgba(52,255,160,0);} 100%{box-shadow:0 0 0 0 rgba(52,255,160,0);} }
+  .relay-code-box{ display:flex; align-items:stretch; gap:8px; margin:16px 0 6px; }
+  .relay-code{
+    font-family:var(--mono); font-size:2rem; font-weight:700; letter-spacing:.35em;
+    color:var(--accent); background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+    padding:14px 10px 14px 18px; flex:1; text-align:center;
+  }
+  .relay-link{ font-family:var(--mono); font-size:.8rem; color:var(--accent); word-break:break-all; }
+  .fallback-note{ margin-top:16px; }
+  .fallback-note a{ color:var(--accent); text-decoration:underline; cursor:pointer; }
+  #join-code-input{ text-transform:uppercase; letter-spacing:.35em; font-family:var(--mono); font-size:1.3rem; text-align:center; }
+
+  /* ---------- App shell ---------- */
+  #app-screen{ display:none; flex-direction:column; height:100vh; height:100dvh; }
+  header{
+    background:var(--panel); border-bottom:1px solid var(--border);
+    padding:12px 20px; display:flex; justify-content:space-between; align-items:center; gap:16px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand h2{ font-size:1.05rem; letter-spacing:-.01em; }
+  .brand .role-badge{
+    font-family:var(--mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); border:1px solid var(--accent-dim); background:var(--accent-soft);
+    padding:2px 7px; border-radius:20px;
+  }
+  .signal-bars{ display:flex; align-items:flex-end; gap:2px; height:16px; }
+  .signal-bars i{ width:4px; background:var(--border); border-radius:1px; display:block; }
+  .signal-bars i:nth-child(1){ height:5px; } .signal-bars i:nth-child(2){ height:9px; }
+  .signal-bars i:nth-child(3){ height:13px; } .signal-bars i:nth-child(4){ height:16px; }
+  .signal-bars i.lit{ background:var(--accent); }
+  .header-right{ display:flex; align-items:center; gap:14px; }
+  .status-indicator{ display:flex; align-items:center; gap:7px; font-size:.82rem; color:var(--text-muted); font-family:var(--mono); }
+
+  .workspace{ display:flex; flex:1; overflow:hidden; }
+  .sidebar{ width:190px; background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:10px; gap:2px; }
+  .nav-btn{
+    padding:11px 12px; text-align:left; background:none; color:var(--text-muted);
+    border-radius:8px; font-size:.87rem; display:flex; align-items:center; gap:9px; font-weight:500;
+  }
+  .nav-btn:hover{ background:var(--panel-alt); color:var(--text); }
+  .nav-btn.active{ background:var(--accent-soft); color:var(--accent); }
+  .nav-btn{ position:relative; }
+  .nav-btn .count{ margin-left:auto; font-family:var(--mono); font-size:.72rem; background:var(--border); padding:1px 6px; border-radius:10px; }
+  .sidebar-foot{ margin-top:auto; padding:10px 12px; font-size:.72rem; color:var(--text-muted); border-top:1px solid var(--border); }
+
+  .main-content{ flex:1; position:relative; background:var(--bg); overflow:hidden; }
+  .view{ display:none; padding:22px; height:100%; overflow-y:auto; flex-direction:column; }
+  .view.active{ display:flex; }
+  .view-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .view-head h2{ font-size:1.15rem; }
+
+  /* Dashboard */
+  .dash-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:14px; }
+  .dash-card{ background:var(--panel); padding:18px; border-radius:var(--radius); border:1px solid var(--border); }
+  .dash-card h3{ color:var(--text-muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; font-family:var(--mono); margin-bottom:10px; }
+  .dash-card .val{ font-size:1.5rem; font-weight:700; color:var(--accent); }
+  .peer-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel); border:1px solid var(--border); border-radius:8px; margin-bottom:8px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--text-muted); flex-shrink:0; }
+  .dot.online{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  .dot.connecting{ background:var(--warn); box-shadow:0 0 8px var(--warn); }
+  .dot.offline{ background:var(--danger); box-shadow:0 0 8px var(--danger); }
+  .peer-row .pname{ font-weight:600; font-size:.88rem; }
+  .peer-row .prole{ font-family:var(--mono); font-size:.68rem; color:var(--text-muted); }
+  .peer-row .pstate{ margin-left:auto; font-size:.75rem; color:var(--text-muted); font-family:var(--mono); }
+
+  /* Chat */
+  .chat-box{ flex:1; overflow-y:auto; background:var(--panel); border-radius:var(--radius); padding:16px; margin-bottom:12px; border:1px solid var(--border); display:flex; flex-direction:column; gap:4px; }
+  .msg-wrap{ display:flex; flex-direction:column; max-width:74%; }
+  .msg-wrap.me{ align-self:flex-end; align-items:flex-end; }
+  .msg-wrap.peer{ align-self:flex-start; }
+  .msg-meta{ font-size:.68rem; color:var(--text-muted); font-family:var(--mono); margin:8px 2px 3px; }
+  .msg{ padding:9px 13px; border-radius:12px; font-size:.9rem; line-height:1.4; word-break:break-word; position:relative; }
+  .msg-wrap.me .msg{ background:var(--accent); color:var(--accent-contrast); border-bottom-right-radius:3px; }
+  .msg-wrap.peer .msg{ background:var(--panel-alt); border:1px solid var(--border); border-bottom-left-radius:3px; }
+  .msg-copy{ opacity:0; transition:.15s; font-size:.68rem; color:var(--text-muted); background:none; margin-top:2px; padding:2px 4px; }
+  .msg-wrap:hover .msg-copy{ opacity:1; }
+  .system-line{ text-align:center; font-size:.72rem; color:var(--text-muted); font-family:var(--mono); margin:6px 0; }
+  .input-group{ display:flex; gap:10px; }
+  .input-group input{ flex:1; padding:11px 14px; background:var(--panel); border:1px solid var(--border); color:var(--text); border-radius:8px; font-size:.9rem; }
+
+  /* Shared text */
+  #shared-textarea{ flex:1; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:var(--radius); padding:16px; font-size:.95rem; resize:none; line-height:1.6; font-family:var(--mono); }
+  .text-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:.78rem; color:var(--text-muted); }
+
+  /* Files */
+  .file-drop{ border:1.5px dashed var(--border); border-radius:var(--radius); padding:34px; text-align:center; color:var(--text-muted); margin-bottom:18px; transition:.15s; }
+  .file-drop.drag{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+  .file-drop p{ font-size:.9rem; }
+  .file-drop .big{ font-size:1rem; margin-bottom:4px; color:var(--text); }
+  .file-list{ display:flex; flex-direction:column; gap:8px; }
+  .file-item{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .file-item .file-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .file-item .fname{ font-weight:600; font-size:.87rem; }
+  .file-item .fmeta{ font-size:.72rem; color:var(--text-muted); font-family:var(--mono); margin-top:2px; }
+  .progress-track{ height:5px; background:var(--border); border-radius:4px; margin-top:9px; overflow:hidden; }
+  .progress-fill{ height:100%; background:var(--accent); width:0%; transition:width .15s; }
+  .file-item a.dl{ color:var(--accent); text-decoration:none; font-size:.78rem; font-weight:700; font-family:var(--mono); }
+
+  /* Terminal */
+  .terminal-container{ flex:1; background:var(--terminal-bg); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; font-family:var(--mono); border:1px solid var(--border); }
+  .term-output{ flex:1; overflow-y:auto; color:var(--terminal-text); margin-bottom:10px; white-space:pre-wrap; font-size:.83rem; line-height:1.6; }
+  .term-input-line{ display:flex; color:var(--terminal-text); align-items:center; }
+  .term-input-line span{ margin-right:8px; opacity:.7; }
+  .term-input-line input{ flex:1; background:transparent; border:none; color:var(--terminal-text); font-family:var(--mono); outline:none; font-size:16px; }
+
+  /* Toasts */
+  #toast-stack{ position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:8px; z-index:100; }
+  .toast{ background:var(--panel-alt); border:1px solid var(--border); color:var(--text); padding:11px 16px; border-radius:8px; font-size:.85rem; box-shadow:0 10px 25px rgba(0,0,0,.4); animation:toastIn .2s ease; max-width:300px; }
+  .toast.warn{ border-color:var(--warn); color:var(--warn); }
+  .toast.err{ border-color:var(--danger); color:var(--danger); }
+  .toast.ok{ border-color:var(--accent-dim); color:var(--accent); }
+  @keyframes toastIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .link-btn{ background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; font-size:inherit; font-family:inherit; cursor:pointer; }
+  .dot.unstable{ background:var(--warn); box-shadow:0 0 8px var(--warn); animation:blink 1s infinite; }
+  @keyframes blink{ 50%{ opacity:.35; } }
+  .field-error{ color:var(--danger); font-size:.78rem; min-height:1.2em; margin-top:6px; }
+  .mode-note{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:.7rem; color:var(--text-muted); margin-top:16px; padding:8px 10px; border:1px dashed var(--border); border-radius:8px; line-height:1.4; }
+  .mode-note .dot{ width:7px; height:7px; box-shadow:none; }
+  .session-banner{ display:none; align-items:center; justify-content:space-between; gap:12px; background:var(--panel-alt); border-bottom:1px solid var(--danger); color:var(--danger); padding:9px 20px; font-size:.84rem; }
+  .session-banner.show{ display:flex; }
+  .empty{ color:var(--text-muted); font-size:.85rem; text-align:center; padding:28px 12px; line-height:1.6; margin:auto; }
+  .empty b{ display:block; color:var(--text); font-size:.95rem; margin-bottom:4px; }
+  .msg-wrap.grouped .msg-meta{ display:none; }
+  .nav-btn .count.alert{ background:var(--accent); color:var(--accent-contrast); }
+  .file-drop{ cursor:pointer; }
+  .file-drop:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .file-item .fpct{ font-family:var(--mono); font-size:.72rem; color:var(--text-muted); white-space:nowrap; }
+  .file-item.done .fpct{ color:var(--accent); }
+  .file-item.failed .progress-fill{ background:var(--danger); }
+  .file-item.failed .fpct{ color:var(--danger); }
+  .file-item .dl{ background:var(--accent); color:var(--accent-contrast) !important; padding:6px 12px; border-radius:7px; white-space:nowrap; }
+  .text-meta{ font-family:var(--mono); font-size:.72rem; }
+  .invite-hint{ margin-top:14px; }
+  .term-line-me{ opacity:1; }
+  .header-leave{ color:var(--danger); padding:8px 12px; }
+  .header-leave:hover{ border-color:var(--danger); color:var(--danger); }
+
+  @media (max-width:720px){
+    .sidebar{ width:64px; }
+    .nav-btn span.label{ display:none; }
+    .nav-btn{ justify-content:center; }
+    .nav-btn .count{ position:absolute; top:3px; right:5px; margin:0; padding:0 5px; font-size:.64rem; }
+    .sidebar-foot{ display:none; }
+    .choose-grid{ grid-template-columns:1fr; }
+  }
+
+  /* ---------- Mobile refinements ---------- */
+  @media (max-width:560px){
+    .overlay{ padding:12px; align-items:flex-end; }
+    .card{ padding:20px 18px; border-radius:16px 16px 0 0; max-height:calc(100dvh - 24px); }
+    .card h1{ font-size:1.2rem; }
+    .relay-code{ font-size:1.4rem; letter-spacing:.2em; padding:12px 6px; }
+    .btn{ padding:10px 14px; font-size:.85rem; }
+    .btn-row{ gap:8px; }
+
+    header{ padding:10px 12px; flex-wrap:wrap; row-gap:8px; }
+    .brand h2{ font-size:.95rem; }
+    .brand .role-badge{ font-size:.58rem; }
+    .header-right{ gap:8px; }
+    .status-indicator{ font-size:.72rem; }
+    #invite-btn span.btn-text{ display:none; }
+
+    /* Sidebar becomes a fixed bottom tab bar */
+    .workspace{ flex-direction:column; }
+    .sidebar{
+      width:100%; flex-direction:row; justify-content:space-around; align-items:center;
+      padding:6px; gap:0; border-right:none; border-top:1px solid var(--border);
+      order:2; padding-bottom: max(6px, env(safe-area-inset-bottom));
+    }
+    .nav-btn{ flex-direction:column; gap:3px; padding:7px 6px; font-size:.62rem; border-radius:10px; }
+    .nav-btn span.label{ display:block; font-size:.6rem; }
+    .nav-btn .count{ display:inline-block; position:absolute; margin-left:14px; margin-top:-14px; }
+    .sidebar-foot{ display:none; }
+    .main-content{ order:1; }
+    .view{ padding:14px; }
+
+    .msg-wrap{ max-width:88%; }
+    .dash-grid{ grid-template-columns:repeat(2,1fr); gap:10px; }
+    .dash-card{ padding:14px; }
+    .dash-card .val{ font-size:1.25rem; }
+
+    #toast-stack{ left:12px; right:12px; bottom:12px; align-items:stretch; }
+    .toast{ max-width:none; }
+
+    .github-link span.gh-text{ display:none; }
+  }
+
+  /* Prevent iOS Safari from zooming in on focused inputs (needs >=16px font) */
+  @media (max-width:560px){
+    input[type=text], textarea{ font-size:16px !important; }
+    #join-code-input{ font-size:1.2rem !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .pulse, .msg-wrap, .wizard-step.active{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast-stack" role="status" aria-live="polite"></div>
+
+<!-- NAME GATE -->
+<div id="name-gate" class="overlay">
+  <div class="card">
+    <button class="btn-icon theme-toggle" id="theme-toggle-gate" style="position:absolute; top:14px; right:14px;" onclick="toggleTheme()" title="Toggle dark / light theme" aria-label="Toggle dark or light theme">🌓</button>
+    <div class="eyebrow">localShare · Offline P2P</div>
+    <h1>Before you connect</h1>
+    <p class="sub">Everything runs locally, browser-to-browser. Nothing touches the internet — pick a display name to show others in the room.</p>
+    <div class="field">
+      <label for="name-input">Display name</label>
+      <input type="text" id="name-input" maxlength="24" placeholder="e.g. Alex" autocomplete="off">
+    </div>
+    <button class="btn primary block" onclick="confirmName()">Continue →</button>
+    <div class="card-foot">
+      <a class="github-link" href="https://github.com/WakifRajin/localShare" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span class="gh-text">Open source by WakifRajin</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- CONNECTION WIZARD -->
+<div id="wizard-modal" class="overlay hidden">
+  <div class="card">
+    <button class="btn-icon wizard-close" id="wizard-close-btn" style="display:none" onclick="cancelWizardStep()" aria-label="Close">✕</button>
+
+    <div id="step-choose" class="wizard-step">
+      <div class="eyebrow">localShare · Offline P2P</div>
+      <h1>Start a session</h1>
+      <p class="sub">No server, no internet — devices exchange a short connection code directly, then talk peer-to-peer over your local network.</p>
+      <div class="choose-grid">
+        <button class="choose-opt" onclick="startHost()">
+          <span class="ico">📡</span><b>Host a session</b><span>Create a room others join</span>
+        </button>
+        <button class="choose-opt" onclick="startJoin()">
+          <span class="ico">🔗</span><b>Join a session</b><span>Connect with a host's code</span>
+        </button>
+      </div>
+      <div class="mode-note"><span class="dot" id="mode-dot"></span><span id="mode-note-text">Checking for a relay server…</span></div>
+    </div>
+
+    <div id="step-host-relay" class="wizard-step">
+      <div class="step-tag">HOST · SHORT CODE</div>
+      <h1>Share this code</h1>
+      <p class="hint">Have others on your network open <span class="relay-link" id="relay-share-url">this page</span> and enter the code below to join.</p>
+      <div class="relay-code-box">
+        <div class="relay-code" id="relay-code-display">•••••</div>
+        <button class="btn-icon" title="Copy code" onclick="copyText(document.getElementById('relay-code-display').innerText)">📋</button>
+      </div>
+      <div class="waiting-line" id="host-relay-status"><span class="pulse"></span> Generating code…</div>
+      <div class="btn-row">
+        <button class="btn" onclick="cancelWizardStep()">← Back</button>
+        <button class="btn" onclick="copyText(window.location.origin + window.location.pathname)">📋 Copy page link</button>
+      </div>
+      <p class="hint fallback-note">Relay not reachable? <button class="link-btn" onclick="showWizardStep('step-host-1')">Use a manual code instead</button></p>
+    </div>
+
+    <div id="step-host-1" class="wizard-step">
+      <div class="step-tag">HOST · MANUAL · STEP 1 OF 2</div>
+      <h1>Share this code</h1>
+      <p class="hint">Send this connection code to the person joining (chat app, email, USB — any channel works). It only encodes local routing info.</p>
+      <textarea class="code-box" id="host-offer" readonly placeholder="Generating connection code…" aria-label="Connection code to send"></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="cancelWizardStep()">← Back</button>
+        <button class="btn" onclick="copyCode('host-offer')">📋 Copy code</button>
+        <button class="btn primary" onclick="showWizardStep('step-host-2')">Next →</button>
+      </div>
+    </div>
+    <div id="step-host-2" class="wizard-step">
+      <div class="step-tag">HOST · STEP 2 OF 2</div>
+      <h1>Paste their reply code</h1>
+      <p class="hint">The joining device will generate a reply code — paste it below to finish connecting.</p>
+      <textarea class="code-box" id="host-answer" placeholder="Paste the reply code here…" aria-label="Reply code from the joining device"></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="showWizardStep('step-host-1')">← Back</button>
+        <button class="btn primary" onclick="wizardConnectHost()">⚡ Connect</button>
+      </div>
+    </div>
+
+    <div id="step-join-relay" class="wizard-step">
+      <div class="step-tag">JOIN · SHORT CODE</div>
+      <h1>Enter the code</h1>
+      <p class="hint">Ask the host for their 5-character code.</p>
+      <div class="field">
+        <label for="join-code-input">Code</label>
+        <input type="text" id="join-code-input" maxlength="5" placeholder="ABCDE" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div class="field-error" id="join-error" role="alert"></div>
+      </div>
+      <div id="join-relay-status" class="waiting-line" style="display:none"><span class="pulse"></span> Looking up code…</div>
+      <div class="btn-row">
+        <button class="btn" onclick="cancelWizardStep()">← Back</button>
+        <button class="btn primary" id="join-code-btn" onclick="joinWithCode()">Connect →</button>
+      </div>
+      <p class="hint fallback-note">Only have a long connection code from the host? <button class="link-btn" onclick="showWizardStep('step-join-1')">Use manual exchange instead</button></p>
+    </div>
+    <div id="step-join-relay-waiting" class="wizard-step">
+      <div class="step-tag">JOIN · SHORT CODE</div>
+      <h1>Connecting…</h1>
+      <p class="hint">Finishing the handshake with the host over your local network.</p>
+      <div class="waiting-line"><span class="pulse"></span> Almost there…</div>
+      <div class="btn-row"><button class="btn" onclick="cancelWizardStep()">← Cancel</button></div>
+    </div>
+
+    <div id="step-join-1" class="wizard-step">
+      <div class="step-tag">JOIN · MANUAL · STEP 1 OF 2</div>
+      <h1>Paste the host's code</h1>
+      <p class="hint">Paste the connection code you received from the host.</p>
+      <textarea class="code-box" id="join-offer" placeholder="Paste the host's code here…" aria-label="Host connection code"></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="cancelWizardStep()">← Back</button>
+        <button class="btn primary" onclick="generateAnswer()">Generate reply code →</button>
+      </div>
+    </div>
+    <div id="step-join-2" class="wizard-step">
+      <div class="step-tag">JOIN · STEP 2 OF 2</div>
+      <h1>Send this reply code back</h1>
+      <p class="hint">Copy this and send it to the host to finish connecting.</p>
+      <textarea class="code-box" id="join-answer" readonly aria-label="Reply code to send to the host"></textarea>
+      <div class="waiting-line"><span class="pulse"></span> Waiting for the host to connect…</div>
+      <div class="btn-row">
+        <button class="btn" onclick="cancelWizardStep()">← Cancel</button>
+        <button class="btn primary" onclick="copyCode('join-answer')">📋 Copy code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <header>
+    <div class="brand">
+      <div class="signal-bars" id="signal-bars"><i></i><i></i><i></i><i></i></div>
+      <h2>localShare</h2>
+      <span class="role-badge" id="role-badge">—</span>
+    </div>
+    <div class="header-right">
+      <div class="status-indicator"><span id="conn-summary">Just you</span></div>
+      <a class="github-link" href="https://github.com/WakifRajin/localShare" target="_blank" rel="noopener noreferrer" title="Open source on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span class="gh-text">GitHub</span>
+      </a>
+      <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="Toggle dark / light theme" aria-label="Toggle dark or light theme">🌓</button>
+      <button class="btn" id="invite-btn" onclick="openInvite()" style="display:none">➕ <span class="btn-text">Invite</span></button>
+      <button class="btn header-leave" onclick="leaveSession()" title="Leave this session">⏻ <span class="btn-text">Leave</span></button>
+    </div>
+  </header>
+  <div class="session-banner" id="session-banner" role="alert">
+    <span id="session-banner-text">The host closed the session.</span>
+    <button class="btn" onclick="location.reload()">Start over</button>
+  </div>
+  <div class="workspace">
+    <div class="sidebar">
+      <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard')" aria-current="page"><span aria-hidden="true">📊</span><span class="label">Dashboard</span></button>
+      <button class="nav-btn" data-view="chat" onclick="switchView('chat')"><span aria-hidden="true">💬</span><span class="label">Chat</span><span class="count alert" id="chat-count" style="display:none">0</span></button>
+      <button class="nav-btn" data-view="text" onclick="switchView('text')"><span aria-hidden="true">📝</span><span class="label">Shared text</span></button>
+      <button class="nav-btn" data-view="files" onclick="switchView('files')"><span aria-hidden="true">📁</span><span class="label">Files</span><span class="count" id="file-count" style="display:none">0</span></button>
+      <button class="nav-btn" data-view="terminal" onclick="switchView('terminal')"><span aria-hidden="true">💻</span><span class="label">Terminal</span></button>
+      <div class="sidebar-foot" id="sidebar-foot">local session</div>
+    </div>
+    <div class="main-content">
+
+      <div id="view-dashboard" class="view active">
+        <div class="view-head"><h2>System dashboard</h2></div>
+        <div class="dash-grid" style="margin-bottom:22px;">
+          <div class="dash-card"><h3>Connection</h3><div class="val">Local P2P</div></div>
+          <div class="dash-card"><h3>Participants</h3><div class="val" id="dash-peers">1</div></div>
+          <div class="dash-card"><h3>Messages</h3><div class="val" id="dash-msgs">0</div></div>
+          <div class="dash-card"><h3>Session time</h3><div class="val" id="dash-time">00:00</div></div>
+        </div>
+        <h3 class="eyebrow" style="margin-bottom:10px;">Participants</h3>
+        <div id="peer-list"></div>
+        <p class="hint invite-hint" id="invite-hint" style="display:none">Nobody else is here yet — use <b>➕ Invite</b> to generate a code for the next person.</p>
+      </div>
+
+      <div id="view-chat" class="view">
+        <div class="chat-box" id="chat-box" aria-live="polite">
+          <div class="empty" id="chat-empty"><b>No messages yet</b>Say hi — messages go straight to everyone in the session.</div>
+        </div>
+        <div class="input-group">
+          <input type="text" id="chat-input" placeholder="Type a message…" autocomplete="off" aria-label="Message">
+          <button class="btn primary" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+
+      <div id="view-text" class="view">
+        <div class="text-toolbar">
+          <span>Live shared document — edits sync to everyone instantly. <span class="text-meta" id="text-meta"></span></span>
+          <button class="btn" onclick="copySharedText()">📋 Copy text</button>
+        </div>
+        <textarea id="shared-textarea" placeholder="Start typing… everyone in the session sees this live." aria-label="Shared document"></textarea>
+      </div>
+
+      <div id="view-files" class="view">
+        <div class="file-drop" id="file-drop" role="button" tabindex="0" aria-label="Choose files to send">
+          <p class="big">📁 Click or drop files here to send</p>
+          <p>Sent directly to everyone in the session, device to device. Files are held in memory while transferring, so very large files will be slow.</p>
+          <input type="file" id="file-input" style="display:none" multiple>
+        </div>
+        <h3 class="eyebrow" style="margin-bottom:10px;">Transfers</h3>
+        <div class="file-list" id="file-list"><div class="empty" id="file-empty">No transfers yet.</div></div>
+      </div>
+
+      <div id="view-terminal" class="view">
+        <p style="color:var(--text-muted); margin-bottom:10px; font-size:.85rem;">Shared session shell — visible to everyone. Try /help</p>
+        <div class="terminal-container" onclick="document.getElementById('term-input').focus()">
+          <div class="term-output" id="term-output">localShare collaborative shell v2.0 — type /help for commands.</div>
+          <div class="term-input-line">
+            <span id="term-prompt">you~$</span>
+            <input type="text" id="term-input" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal command">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const BASE_TITLE = document.title;
+const RELAY_BASE = ''; // same-origin: when server.js serves this page, relative /api/* just works
+const config = { iceServers: [] }; // empty = local-network-only ICE candidates, no external STUN/TURN
+
+let myId = uid(8);
+let myName = '';
+let isHost = false;
+const peers = new Map();        // key -> { pc, dc, name, remoteId, status, everOnline }
+const remoteRoster = new Map(); // id -> { name, host } — everyone I've heard about, directly or via the host
+let sharedText = '';
+let localEditing = false, localEditTimer = null;
+let msgsSent = 0, msgsRecv = 0;
+let startTime = null, timerHandle = null;
+const incomingTransfers = new Map();
+let pendingWizardKey = null;    // handshake still waiting on the other side (safe to tear down on cancel)
+let wizardKey = null;           // connection the open wizard step is about (closes the wizard once it's up)
+let hasEnteredApp = false;
+let hostPollHandle = null;      // interval polling the relay for an answer
+let connectTimer = null;        // "still connecting…" nudge
+let relayAvailable = null;      // null = unknown, true/false once detected
+let currentView = 'dashboard';
+let unreadChat = 0;
+let lastChat = { id: null, ts: 0 };
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function uid(n){
+  const c = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const r = crypto.getRandomValues(new Uint8Array(n));
+  let s = '';
+  for(let i = 0; i < n; i++) s += c[r[i] % c.length];
+  return s;
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+}
+function fmtBytes(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  if(b < 1024 * 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB';
+  return (b / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+}
+function fmtTime(ts){ return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); }
+function cleanName(n){
+  const s = String(n == null ? '' : n).replace(/\s+/g, ' ').trim().slice(0, 24);
+  return s || 'Guest';
+}
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+
+/* =========================================================
+   THEME
+   ========================================================= */
+function toggleTheme(){
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  lsSet('localshare_theme', next);
+}
+
+/* =========================================================
+   TOASTS
+   ========================================================= */
+function showToast(text, kind){
+  const stack = $('toast-stack');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = text;
+  stack.appendChild(el);
+  while(stack.children.length > 4) stack.firstChild.remove();
+  setTimeout(()=>{ el.style.opacity = '0'; el.style.transition = '.25s'; setTimeout(()=>el.remove(), 250); }, kind === 'err' ? 5000 : 3200);
+}
+
+/* =========================================================
+   RELAY DETECTION (short codes need server.js; GitHub Pages / file:// don't have it)
+   ========================================================= */
+const relayReady = (async function detectRelay(){
+  if(location.protocol === 'file:'){ relayAvailable = false; return false; }
+  try{
+    const ctl = new AbortController();
+    const t = setTimeout(()=>ctl.abort(), 2500);
+    const r = await fetch(RELAY_BASE + '/api/ping', { signal: ctl.signal, cache: 'no-store' });
+    clearTimeout(t);
+    const j = r.ok ? await r.json() : null;
+    relayAvailable = !!(j && j.app === 'localshare');
+  }catch(e){ relayAvailable = false; }
+  return relayAvailable;
+})().then(ok => {
+  $('mode-dot').className = 'dot ' + (ok ? 'online' : 'connecting');
+  $('mode-note-text').textContent = ok
+    ? 'Relay found — short 5-character codes are available.'
+    : 'No relay on this page — you\'ll exchange connection codes manually (copy & paste). Run server.js on a machine for short codes.';
+  return ok;
+});
+
+/* =========================================================
+   NAME GATE
+   ========================================================= */
+$('name-input').value = lsGet('localshare_display_name') || '';
+$('name-input').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); confirmName(); } });
+setTimeout(()=> $('name-input').focus(), 50);
+
+function confirmName(){
+  const val = $('name-input').value.trim();
+  myName = val ? cleanName(val) : ('Guest-' + uid(4));
+  lsSet('localshare_display_name', myName);
+  $('name-gate').classList.add('hidden');
+  $('wizard-modal').classList.remove('hidden');
+  showWizardStep('step-choose');
+}
+
+/* =========================================================
+   WIZARD NAVIGATION
+   ========================================================= */
+function showWizardStep(stepId){
+  document.querySelectorAll('.wizard-step').forEach(e=>e.classList.remove('active'));
+  const step = $(stepId);
+  step.classList.add('active');
+  const focusEl = step.querySelector('input:not([type=hidden]), textarea:not([readonly])');
+  if(focusEl) setTimeout(()=> focusEl.focus(), 30);
+}
+function wizardOpen(){ return !$('wizard-modal').classList.contains('hidden'); }
+function resetWizardFields(){
+  ['host-offer','host-answer','join-offer','join-answer','join-code-input'].forEach(id=>{ $(id).value = ''; });
+  $('relay-code-display').textContent = '•••••';
+  $('join-relay-status').style.display = 'none';
+  $('join-error').textContent = '';
+  $('join-code-btn').disabled = false;
+}
+// Tear down whatever handshake is currently in progress (not established connections).
+function abortPending(){
+  clearInterval(hostPollHandle); hostPollHandle = null;
+  clearTimeout(connectTimer); connectTimer = null;
+  if(pendingWizardKey){
+    dropPeer(pendingWizardKey);
+    pendingWizardKey = null;
+  }
+}
+function cancelWizardStep(){
+  abortPending();
+  wizardKey = null;
+  resetWizardFields();
+  if(hasEnteredApp) closeWizard();
+  else showWizardStep('step-choose');
+}
+function openInvite(){
+  $('wizard-modal').classList.remove('hidden');
+  $('wizard-close-btn').style.display = 'inline-flex';
+  startHost();
+}
+function closeWizard(){
+  wizardKey = null;
+  $('wizard-modal').classList.add('hidden');
+}
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && wizardOpen() && hasEnteredApp) cancelWizardStep();
+});
+
+/* =========================================================
+   WEBRTC — SIGNALING HELPERS
+   ========================================================= */
+function waitIceGatheringComplete(pc, timeoutMs){
+  return new Promise(resolve=>{
+    if(pc.iceGatheringState === 'complete') return resolve();
+    let done = false;
+    const finish = ()=>{ if(done) return; done = true; pc.removeEventListener('icegatheringstatechange', check); resolve(); };
+    const check = ()=>{ if(pc.iceGatheringState === 'complete') finish(); };
+    pc.addEventListener('icegatheringstatechange', check);
+    setTimeout(finish, timeoutMs || 4000);
+  });
+}
+
+function encodeCode(desc){ return btoa(JSON.stringify(desc)); }
+function decodeCode(raw){
+  const d = JSON.parse(atob(String(raw).replace(/\s+/g, '')));
+  if(!d || typeof d.sdp !== 'string' || (d.type !== 'offer' && d.type !== 'answer')) throw new Error('bad code');
+  return d;
+}
+
+function makePeerConnection(key){
+  dropPeer(key); // never leave an orphaned connection under the same key
+  const pc = new RTCPeerConnection(config);
+  const entry = { pc, dc:null, name:null, remoteId:null, status:'connecting', everOnline:false };
+  peers.set(key, entry);
+  pc.onconnectionstatechange = ()=>{
+    if(peers.get(key) !== entry) return;
+    const st = pc.connectionState;
+    if(st === 'connected'){
+      if(entry.dc && entry.dc.readyState === 'open' && entry.status === 'unstable') entry.status = 'online';
+    } else if(st === 'disconnected'){
+      // Often transient (Wi-Fi blip) — don't give up yet.
+      if(entry.status === 'online') entry.status = 'unstable';
+    } else if(st === 'failed' || st === 'closed'){
+      markPeerOffline(key, entry);
+      return;
+    }
+    renderPeerList(); updateDashboardCounts();
+  };
+  return { pc, entry };
+}
+
+function dropPeer(key){
+  const p = peers.get(key);
+  if(!p) return;
+  peers.delete(key); // delete first so close events are ignored
+  try{ if(p.dc) p.dc.close(); }catch(e){}
+  try{ if(p.pc) p.pc.close(); }catch(e){}
+}
+
+function markPeerOffline(key, entry){
+  if(peers.get(key) !== entry || entry.status === 'offline') return;
+  entry.status = 'offline';
+
+  if(!entry.everOnline){
+    // The handshake never completed.
+    dropPeer(key);
+    if(key === pendingWizardKey) pendingWizardKey = null;
+    clearTimeout(connectTimer);
+    showToast('Connection failed — make sure both devices are on the same network, then try again.', 'err');
+    if(wizardKey === key){
+      wizardKey = null;
+      resetWizardFields();
+      if(hasEnteredApp) closeWizard(); else showWizardStep('step-choose');
+    }
+    return;
+  }
+
+  const name = entry.name || 'A peer';
+  showToast(`${name} disconnected`, 'warn');
+  appendSystemLine(`${name} left the session`);
+  if(entry.remoteId) remoteRoster.delete(entry.remoteId);
+  if(isHost){
+    if(entry.remoteId) broadcast({ type:'leave', data:{ id: entry.remoteId, name } }, key);
+  } else if(key === 'host'){
+    remoteRoster.clear();
+    $('session-banner-text').textContent = 'The connection to the host was lost — the session has ended.';
+    $('session-banner').classList.add('show');
+  }
+  renderPeerList(); updateDashboardCounts();
+  setTimeout(()=>{
+    if(peers.get(key) === entry && entry.status === 'offline'){ dropPeer(key); renderPeerList(); updateDashboardCounts(); }
+  }, 8000);
+}
+
+function setupDataChannel(key, dc){
+  const entry = peers.get(key);
+  if(!entry) return;
+  entry.dc = dc;
+  dc.binaryType = 'arraybuffer';
+  dc.onopen = ()=>{
+    if(peers.get(key) !== entry) return;
+    entry.status = 'online';
+    entry.everOnline = true;
+    clearTimeout(connectTimer);
+    if(pendingWizardKey === key) pendingWizardKey = null;
+    const wasWizard = (wizardKey === key);
+    if(wasWizard) wizardKey = null;
+    sendToKey(key, { type:'presence', data:{ id: myId, name: myName, host: isHost } });
+    if(isHost) sendToKey(key, { type:'sync', data:{ text: sharedText, roster: rosterList() } });
+    enterAppIfNeeded(wasWizard);
+    showToast(entry.name ? `${entry.name} connected` : 'Peer connected', 'ok');
+  };
+  dc.onclose = ()=> markPeerOffline(key, entry);
+  dc.onmessage = e => { try{ handleIncoming(key, e.data); }catch(err){ console.warn('bad message', err); } };
+}
+
+function safeSend(dc, data){
+  try{ dc.send(data); return true; }catch(e){ return false; }
+}
+function sendToKey(key, msg){
+  const p = peers.get(key);
+  if(p && p.dc && p.dc.readyState === 'open') return safeSend(p.dc, JSON.stringify(msg));
+  return false;
+}
+function broadcastRaw(data, exceptKey){
+  let sent = false;
+  for(const [key, p] of peers){
+    if(key === exceptKey) continue;
+    if(p.dc && p.dc.readyState === 'open' && safeSend(p.dc, data)) sent = true;
+  }
+  return sent;
+}
+function broadcast(msg, exceptKey){ return broadcastRaw(JSON.stringify(msg), exceptKey); }
+function rosterList(){
+  const list = [{ id: myId, name: myName, host: isHost }];
+  for(const [,p] of peers) if(p.name && p.remoteId && p.status !== 'offline') list.push({ id: p.remoteId, name: p.name, host: false });
+  return list;
+}
+
+function armConnectTimer(){
+  clearTimeout(connectTimer);
+  connectTimer = setTimeout(()=>{
+    showToast('Still connecting… both devices must be on the same network, and the host page must stay open.', 'warn');
+  }, 25000);
+}
+
+/* ---- HOST FLOW ---- */
+async function startHost(){
+  abortPending();
+  resetWizardFields();
+  isHost = true;
+  const key = 'peer-' + uid(6);
+  pendingWizardKey = wizardKey = key;
+
+  const useRelay = await relayReady;
+  if(pendingWizardKey !== key) return; // cancelled while we were checking
+  showWizardStep(useRelay ? 'step-host-relay' : 'step-host-1');
+  setHostRelayStatus('Generating code…');
+
+  const { pc } = makePeerConnection(key);
+  setupDataChannel(key, pc.createDataChannel('localshare-' + key));
+
+  try{
+    await pc.setLocalDescription(await pc.createOffer());
+    await waitIceGatheringComplete(pc);
+  }catch(e){
+    if(pendingWizardKey === key){ showToast('Could not create session: ' + e.message, 'err'); cancelWizardStep(); }
+    return;
+  }
+  if(pendingWizardKey !== key) return;
+  $('host-offer').value = encodeCode(pc.localDescription); // manual fallback, always populated
+
+  if(!useRelay) return;
+  try{
+    const resp = await fetch(RELAY_BASE + '/api/create', {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ offer: pc.localDescription })
+    });
+    if(!resp.ok) throw new Error('relay unavailable');
+    const { code } = await resp.json();
+    if(pendingWizardKey !== key) return;
+    $('relay-code-display').textContent = code;
+    $('relay-share-url').textContent = location.origin + location.pathname;
+    setHostRelayStatus('Waiting for someone to enter this code…');
+    pollForAnswer(key, code);
+  }catch(e){
+    if(pendingWizardKey !== key) return;
+    showToast('Relay unreachable — switched to a manual code', 'warn');
+    showWizardStep('step-host-1');
+  }
+}
+
+function setHostRelayStatus(text, kind){
+  const el = $('host-relay-status');
+  el.innerHTML = (kind ? '' : '<span class="pulse"></span> ') + esc(text);
+}
+
+function pollForAnswer(key, code){
+  clearInterval(hostPollHandle);
+  hostPollHandle = setInterval(async ()=>{
+    const p = peers.get(key);
+    if(!p || pendingWizardKey !== key || p.pc.signalingState !== 'have-local-offer'){ clearInterval(hostPollHandle); return; }
+    try{
+      const resp = await fetch(RELAY_BASE + '/api/answer/' + code, { cache:'no-store' });
+      if(resp.status === 202) return; // still waiting
+      if(resp.status === 404){
+        // Code expired on the relay — quietly make a fresh one.
+        clearInterval(hostPollHandle);
+        showToast('That code expired — generated a new one', 'warn');
+        startHost();
+        return;
+      }
+      if(!resp.ok) return;
+      const { answer } = await resp.json();
+      clearInterval(hostPollHandle);
+      if(peers.get(key) !== p) return;
+      setHostRelayStatus('Connecting…');
+      await p.pc.setRemoteDescription(answer);
+      pendingWizardKey = null;
+      armConnectTimer();
+    }catch(e){ /* transient network hiccup — keep polling */ }
+  }, 1500);
+}
+
+async function wizardConnectHost(){
+  const key = pendingWizardKey;
+  const p = key && peers.get(key);
+  if(!p){ showToast('Start a new invite first', 'err'); return; }
+  const raw = $('host-answer').value.trim();
+  if(!raw){ showToast('Paste the reply code first', 'err'); return; }
+  try{
+    await p.pc.setRemoteDescription(decodeCode(raw));
+    pendingWizardKey = null;
+    armConnectTimer();
+    showToast('Connecting…');
+  }catch(e){
+    showToast('That reply code looks invalid — check it was copied in full.', 'err');
+  }
+}
+
+/* ---- JOIN FLOW ---- */
+async function startJoin(){
+  abortPending();
+  resetWizardFields();
+  const useRelay = await relayReady;
+  showWizardStep(useRelay ? 'step-join-relay' : 'step-join-1');
+}
+
+async function createAnswerFor(offer){
+  isHost = false;
+  const key = 'host';
+  pendingWizardKey = wizardKey = key;
+  const { pc } = makePeerConnection(key);
+  pc.ondatachannel = e => setupDataChannel(key, e.channel);
+  await pc.setRemoteDescription(offer);
+  await pc.setLocalDescription(await pc.createAnswer());
+  await waitIceGatheringComplete(pc);
+  if(peers.get(key) === undefined) throw new Error('cancelled');
+  return pc.localDescription;
+}
+
+async function joinWithCode(){
+  const code = $('join-code-input').value.trim().toUpperCase();
+  const errEl = $('join-error');
+  errEl.textContent = '';
+  if(code.length !== 5){ errEl.textContent = 'Enter the 5-character code from the host.'; return; }
+
+  const statusEl = $('join-relay-status');
+  const btn = $('join-code-btn');
+  btn.disabled = true;
+  statusEl.style.display = 'flex';
+  statusEl.innerHTML = '<span class="pulse"></span> Looking up code…';
+
+  try{
+    const offerResp = await fetch(RELAY_BASE + '/api/offer/' + code, { cache:'no-store' });
+    if(offerResp.status === 404){ errEl.textContent = 'Code not found or expired — check it with the host.'; return; }
+    if(offerResp.status === 429){ errEl.textContent = 'Too many attempts — wait a minute and try again.'; return; }
+    if(!offerResp.ok) throw new Error('relay unavailable');
+    const { offer } = await offerResp.json();
+
+    const answer = await createAnswerFor(offer);
+    const post = await fetch(RELAY_BASE + '/api/answer/' + code, {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ answer })
+    });
+    if(post.status === 409){
+      abortPending();
+      errEl.textContent = 'Someone else already joined with that code — ask the host for a new one.';
+      return;
+    }
+    if(!post.ok) throw new Error('relay rejected answer');
+    showWizardStep('step-join-relay-waiting');
+    armConnectTimer();
+  }catch(e){
+    abortPending();
+    errEl.innerHTML = 'Could not reach the relay. <button class="link-btn" onclick="showWizardStep(\'step-join-1\')">Use manual exchange</button>';
+  }finally{
+    statusEl.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+async function generateAnswer(){
+  const raw = $('join-offer').value.trim();
+  if(!raw){ showToast('Paste the host code first', 'err'); return; }
+  let offer;
+  try{ offer = decodeCode(raw); if(offer.type !== 'offer') throw new Error('not an offer'); }
+  catch(e){ showToast('That host code looks invalid — check it was copied in full.', 'err'); return; }
+
+  showWizardStep('step-join-2');
+  $('join-answer').value = '';
+  try{
+    const answer = await createAnswerFor(offer);
+    $('join-answer').value = encodeCode(answer);
+    armConnectTimer();
+  }catch(e){
+    abortPending();
+    showToast('Could not process that host code: ' + e.message, 'err');
+    showWizardStep('step-join-1');
+  }
+}
+
+// Join-code input: letters/digits only, uppercase, Enter to connect.
+$('join-code-input').addEventListener('input', e=>{
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+  $('join-error').textContent = '';
+});
+$('join-code-input').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); joinWithCode(); } });
+
+/* ---- clipboard (navigator.clipboard is unavailable on plain-http LAN pages) ---- */
+function legacyCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){}
+  ta.remove();
+  return ok;
+}
+function copyText(text, label){
+  const done = ()=> showToast(label || 'Copied', 'ok');
+  const fail = ()=> showToast('Copy failed — select the text and copy it manually', 'err');
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(()=> legacyCopy(text) ? done() : fail());
+  } else {
+    legacyCopy(text) ? done() : fail();
+  }
+}
+function copyCode(id){
+  const el = $(id);
+  if(!el.value){ showToast('Nothing to copy yet', 'warn'); return; }
+  copyText(el.value, 'Code copied');
+}
+
+/* =========================================================
+   ENTER APP
+   ========================================================= */
+function enterAppIfNeeded(closeIfOpen){
+  if(!hasEnteredApp){
+    hasEnteredApp = true;
+    $('wizard-modal').classList.add('hidden');
+    $('app-screen').style.display = 'flex';
+    $('role-badge').textContent = isHost ? 'HOST' : 'JOINED';
+    $('invite-btn').style.display = isHost ? 'inline-flex' : 'none';
+    $('sidebar-foot').textContent = myName + (isHost ? ' · hosting' : ' · connected');
+    $('term-prompt').textContent = myName.toLowerCase().replace(/\s+/g, '') + '~$';
+    startTime = Date.now();
+    timerHandle = setInterval(updateTimer, 1000);
+    resetWizardFields();
+  } else if(closeIfOpen){
+    closeWizard(); // only the wizard step that produced this connection — not an invite opened since
+    resetWizardFields();
+  }
+  renderPeerList(); updateDashboardCounts();
+}
+
+function leaveSession(){
+  if(!confirm('Leave this session? You will be disconnected from everyone.')) return;
+  for(const key of [...peers.keys()]) dropPeer(key);
+  location.reload();
+}
+
+/* =========================================================
+   INCOMING MESSAGE HANDLING (host relays between joiners)
+   ========================================================= */
+const RELAYED_TYPES = new Set(['presence', 'chat', 'text', 'term', 'file-start', 'file-end']);
+const HOST_ONLY_TYPES = new Set(['sync', 'leave']);
+
+function handleIncoming(fromKey, data){
+  if(typeof data !== 'string'){          // binary = file chunk
+    if(isHost) broadcastRaw(data, fromKey);
+    processChunk(data);
+    return;
+  }
+  let msg;
+  try{ msg = JSON.parse(data); }catch(e){ return; }
+  if(!msg || typeof msg.type !== 'string' || typeof msg.data !== 'object' || msg.data === null) return;
+
+  if(HOST_ONLY_TYPES.has(msg.type)){
+    if(isHost || fromKey !== 'host') return; // only the host may send these
+  } else if(!RELAYED_TYPES.has(msg.type)){
+    return;
+  }
+  msgsRecv++; updateDashboardCounts();
+
+  if(isHost && RELAYED_TYPES.has(msg.type)){
+    broadcast({ ...msg, relayed:true }, fromKey);
+  }
+  processMessage(fromKey, msg);
+}
+
+function processMessage(fromKey, msg){
+  const p = peers.get(fromKey);
+  const d = msg.data;
+  switch(msg.type){
+    case 'presence': {
+      if(!d.id || d.id === myId) return;
+      const name = cleanName(d.name);
+      // A relayed presence describes someone else — never let it rename the connection it arrived on.
+      if(p && !msg.relayed){ p.name = name; p.remoteId = d.id; }
+      const isNew = !remoteRoster.has(d.id);
+      remoteRoster.set(d.id, { name, host: !!d.host && !msg.relayed });
+      if(isNew) appendSystemLine(`${name} joined the session`);
+      renderPeerList(); updateDashboardCounts();
+      break;
+    }
+    case 'sync':
+      sharedText = typeof d.text === 'string' ? d.text : '';
+      setSharedTextUI(sharedText);
+      (Array.isArray(d.roster) ? d.roster : []).forEach(r=>{
+        if(r && r.id && r.id !== myId) remoteRoster.set(r.id, { name: cleanName(r.name), host: !!r.host });
+      });
+      renderPeerList(); updateDashboardCounts();
+      break;
+    case 'leave': {
+      const r = remoteRoster.get(d.id);
+      remoteRoster.delete(d.id);
+      appendSystemLine(`${r ? r.name : cleanName(d.name)} left the session`);
+      renderPeerList(); updateDashboardCounts();
+      break;
+    }
+    case 'chat':
+      if(typeof d.text !== 'string') return;
+      appendChatMessage(cleanName(d.name), d.text.slice(0, 5000), false, d.ts, d.id);
+      break;
+    case 'text':
+      if(typeof d.text !== 'string') return;
+      sharedText = d.text;
+      setSharedTextUI(sharedText, d.by);
+      break;
+    case 'term':
+      appendTerminalLine(`${cleanName(d.name)}~$ ${String(d.cmd).slice(0, 500)}\n${String(d.res).slice(0, 2000)}`);
+      break;
+    case 'file-start': {
+      const total = Number(d.totalChunks), size = Number(d.size);
+      if(typeof d.transferId !== 'string' || d.transferId.length !== 10 || !(total >= 0 && total <= 5_000_000) || !(size >= 0)) return;
+      incomingTransfers.set(d.transferId, {
+        name: String(d.name || 'file').slice(0, 200), size, mime: String(d.mime || 'application/octet-stream'),
+        totalChunks: total, chunks: new Array(total), received: 0, senderName: cleanName(d.senderName)
+      });
+      renderIncomingFileItem(d.transferId, incomingTransfers.get(d.transferId));
+      break;
+    }
+    case 'file-end':
+      completeIncomingTransfer(d.transferId);
+      break;
+  }
+}
+
+/* =========================================================
+   SEND HELPER (role-agnostic: host broadcasts, joiner sends to host)
+   ========================================================= */
+function sendPayload(msg){
+  const ok = isHost ? broadcast(msg) : sendToKey('host', msg);
+  msgsSent++; updateDashboardCounts();
+  return ok;
+}
+function sendBinary(buf){
+  return isHost ? broadcastRaw(buf) : (()=>{
+    const p = peers.get('host');
+    return !!(p && p.dc && p.dc.readyState === 'open' && safeSend(p.dc, buf));
+  })();
+}
+
+/* =========================================================
+   UI: NAV / DASHBOARD / PEER LIST
+   ========================================================= */
+function switchView(viewId){
+  currentView = viewId;
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    const on = b.dataset.view === viewId;
+    b.classList.toggle('active', on);
+    if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  $('view-' + viewId).classList.add('active');
+  if(viewId === 'chat'){ clearUnread(); const box = $('chat-box'); box.scrollTop = box.scrollHeight; }
+  const focusMap = { chat:'chat-input', terminal:'term-input', text:'shared-textarea' };
+  if(focusMap[viewId] && window.matchMedia('(hover:hover)').matches) setTimeout(()=> $(focusMap[viewId]).focus(), 30);
+}
+
+function updateTimer(){
+  if(!startTime) return;
+  const diff = Math.floor((Date.now() - startTime) / 1000);
+  const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+  const mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+  $('dash-time').textContent = h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function connectedCount(){
+  let n = 0;
+  for(const [,p] of peers) if(p.status === 'online') n++;
+  return n;
+}
+// Participants I can't see a direct connection to (joiners only learn about each other through the host).
+function indirectParticipants(){
+  if(isHost) return [];
+  const direct = new Set([...peers.values()].map(p => p.remoteId).filter(Boolean));
+  const hostUp = peers.get('host') && peers.get('host').status !== 'offline';
+  if(!hostUp) return [];
+  return [...remoteRoster.entries()].filter(([id]) => id !== myId && !direct.has(id));
+}
+function participantCount(){ return 1 + connectedCount() + indirectParticipants().length; }
+
+function updateDashboardCounts(){
+  const n = participantCount();
+  $('dash-peers').textContent = n;
+  $('dash-msgs').textContent = msgsSent + msgsRecv;
+  $('conn-summary').textContent = n === 1 ? 'Just you' : `${n} people`;
+  const lit = n === 1 ? 0 : Math.min(4, n);
+  document.querySelectorAll('#signal-bars i').forEach((b, i)=> b.classList.toggle('lit', i < lit));
+  $('invite-hint').style.display = (isHost && n === 1) ? 'block' : 'none';
+}
+
+function peerRow(dotClass, name, role, state, extra){
+  const row = document.createElement('div');
+  row.className = 'peer-row';
+  row.innerHTML = `<div class="dot ${dotClass}"></div><div><div class="pname">${esc(name)}</div><div class="prole">${esc(role)}</div></div>` +
+    (state ? `<div class="pstate">${esc(state)}</div>` : '') + (extra || '');
+  return row;
+}
+function renderPeerList(){
+  const list = $('peer-list');
+  list.innerHTML = '';
+  list.appendChild(peerRow('online', myName + ' (you)', isHost ? 'host' : 'participant', ''));
+
+  for(const [key, p] of peers){
+    const role = key === 'host' ? 'host' : 'participant';
+    if(!p.name){
+      if(p.status === 'connecting') list.appendChild(peerRow('connecting', 'Connecting…', role, ''));
+      continue;
+    }
+    const state = p.status === 'unstable' ? 'reconnecting…' : p.status;
+    const kick = isHost && p.status !== 'offline'
+      ? `<button class="btn-icon" title="Disconnect ${esc(p.name)}" aria-label="Disconnect ${esc(p.name)}" data-kick="${esc(key)}">✕</button>` : '';
+    const row = peerRow(p.status, p.name, role, state, kick);
+    const kb = row.querySelector('[data-kick]');
+    if(kb) kb.addEventListener('click', ()=> disconnectPeer(key));
+    list.appendChild(row);
+  }
+  for(const [, r] of indirectParticipants()) list.appendChild(peerRow('online', r.name, r.host ? 'host' : 'participant', 'via host'));
+}
+
+function disconnectPeer(key){
+  const p = peers.get(key);
+  if(!p) return;
+  if(p.remoteId && isHost) broadcast({ type:'leave', data:{ id: p.remoteId, name: p.name } }, key);
+  if(p.remoteId) remoteRoster.delete(p.remoteId);
+  appendSystemLine(`${p.name || 'A peer'} was disconnected`);
+  dropPeer(key);
+  renderPeerList(); updateDashboardCounts();
+}
+
+/* =========================================================
+   CHAT MODULE
+   ========================================================= */
+function sendChat(){
+  const input = $('chat-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const ts = Date.now();
+  if(!sendPayload({ type:'chat', data:{ id: myId, name: myName, text, ts } })){
+    showToast('Not delivered — nobody else is connected', 'warn');
+    return;
+  }
+  appendChatMessage(myName, text, true, ts, myId);
+  input.value = '';
+}
+$('chat-input').addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.isComposing) sendChat(); });
+
+function appendChatMessage(name, text, isMe, ts, senderId){
+  const box = $('chat-box');
+  const empty = $('chat-empty'); if(empty) empty.remove();
+  ts = Number(ts) || Date.now();
+  const grouped = lastChat.id === senderId && (ts - lastChat.ts) < 120000;
+  lastChat = { id: senderId, ts };
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap ' + (isMe ? 'me' : 'peer') + (grouped ? ' grouped' : '');
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.textContent = (isMe ? 'You' : name) + ' · ' + fmtTime(ts);
+  const bubble = document.createElement('div');
+  bubble.className = 'msg';
+  bubble.textContent = text;
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'msg-copy';
+  copyBtn.textContent = '📋 copy';
+  copyBtn.setAttribute('aria-label', 'Copy message');
+  copyBtn.onclick = ()=> copyText(text);
+  wrap.append(meta, bubble, copyBtn);
+
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.appendChild(wrap);
+  if(isMe || nearBottom) box.scrollTop = box.scrollHeight;
+  if(!isMe && (currentView !== 'chat' || document.hidden)){ unreadChat++; refreshUnread(); }
+}
+function appendSystemLine(text){
+  const box = $('chat-box');
+  const empty = $('chat-empty'); if(empty) empty.remove();
+  lastChat = { id: null, ts: 0 };
+  const el = document.createElement('div');
+  el.className = 'system-line';
+  el.textContent = text;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+function refreshUnread(){
+  const badge = $('chat-count');
+  badge.style.display = unreadChat ? 'inline-block' : 'none';
+  badge.textContent = unreadChat > 99 ? '99+' : unreadChat;
+  document.title = unreadChat ? `(${unreadChat}) ${BASE_TITLE}` : BASE_TITLE;
+}
+function clearUnread(){ unreadChat = 0; refreshUnread(); }
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && currentView === 'chat') clearUnread(); });
+
+/* =========================================================
+   SHARED TEXT MODULE
+   ========================================================= */
+const sharedTA = $('shared-textarea');
+let sendTextDebounce = null;
+sharedTA.addEventListener('input', ()=>{
+  localEditing = true;
+  clearTimeout(localEditTimer);
+  localEditTimer = setTimeout(()=> localEditing = false, 900);
+  sharedText = sharedTA.value;
+  $('text-meta').textContent = `· ${sharedText.length} chars`;
+  clearTimeout(sendTextDebounce);
+  sendTextDebounce = setTimeout(()=> sendPayload({ type:'text', data:{ text: sharedText, by: myName } }), 150);
+});
+function setSharedTextUI(text, by){
+  if(by) $('text-meta').textContent = `· last edit by ${cleanName(by)} · ${text.length} chars`;
+  else $('text-meta').textContent = text ? `· ${text.length} chars` : '';
+  if(sharedTA.value === text) return;
+  if(document.activeElement === sharedTA && localEditing) return; // don't clobber active local typing
+  const old = sharedTA.value, s = sharedTA.selectionStart, e = sharedTA.selectionEnd;
+  sharedTA.value = text;
+  // keep the caret where it was relative to the text after the first difference
+  let pre = 0;
+  while(pre < old.length && pre < text.length && old[pre] === text[pre]) pre++;
+  const delta = text.length - old.length;
+  const adj = pos => Math.max(0, Math.min(text.length, pos <= pre ? pos : pos + delta));
+  try{ sharedTA.setSelectionRange(adj(s), adj(e)); }catch(err){}
+}
+function copySharedText(){ if(!sharedTA.value){ showToast('Nothing to copy yet', 'warn'); return; } copyText(sharedTA.value); }
+
+/* =========================================================
+   TERMINAL MODULE
+   ========================================================= */
+const termHistory = [];
+let termHistIdx = 0;
+function sendTerminal(){
+  const input = $('term-input');
+  const cmd = input.value.trim();
+  if(!cmd) return;
+  termHistory.push(cmd); termHistIdx = termHistory.length;
+  let res = '';
+  if(cmd === '/help') res = 'Commands: /help, /ping, /peers, /whoami, /time, /clear   (↑/↓ for history)';
+  else if(cmd === '/ping') res = 'pong — data channel is alive';
+  else if(cmd === '/whoami') res = `${myName} (${isHost ? 'host' : 'participant'}, id ${myId})`;
+  else if(cmd === '/peers'){
+    const names = [myName + ' (you)'];
+    for(const [,p] of peers) if(p.name && p.status !== 'offline') names.push(p.name);
+    indirectParticipants().forEach(([, r]) => names.push(r.name));
+    res = `In session: ${names.length} — ${names.join(', ')}`;
+  }
+  else if(cmd === '/time') res = new Date().toString();
+  else if(cmd === '/clear'){ $('term-output').textContent = ''; input.value = ''; return; }
+  else res = `command not found: ${cmd}`;
+
+  appendTerminalLine(`${myName}~$ ${cmd}\n${res}`);
+  sendPayload({ type:'term', data:{ name: myName, cmd, res } });
+  input.value = '';
+}
+$('term-input').addEventListener('keydown', e=>{
+  if(e.isComposing) return;
+  if(e.key === 'Enter') sendTerminal();
+  else if(e.key === 'ArrowUp' && termHistory.length){
+    e.preventDefault(); termHistIdx = Math.max(0, termHistIdx - 1); e.target.value = termHistory[termHistIdx];
+  } else if(e.key === 'ArrowDown' && termHistory.length){
+    e.preventDefault(); termHistIdx = Math.min(termHistory.length, termHistIdx + 1); e.target.value = termHistory[termHistIdx] || '';
+  }
+});
+function appendTerminalLine(text){
+  const out = $('term-output');
+  out.appendChild(document.createTextNode('\n' + text));
+  while(out.childNodes.length > 400) out.firstChild.remove();
+  out.scrollTop = out.scrollHeight;
+}
+
+/* =========================================================
+   FILE TRANSFER MODULE
+   Chunks travel as binary frames: [10-byte transfer id][uint32 index][payload].
+   file-start / file-end are small JSON control messages.
+   ========================================================= */
+const CHUNK_SIZE = 15000;              // + 14-byte header stays under the 16 KiB cross-browser message limit
+const BUFFER_HIGH_WATER = 1_000_000;   // pause sending above this
+const HEADER_BYTES = 14;
+
+function anyOpenChannel(){
+  for(const [,p] of peers) if(p.dc && p.dc.readyState === 'open') return true;
+  return false;
+}
+function waitForBufferedAmountLow(){
+  return new Promise(resolve=>{
+    const check = ()=>{
+      let max = 0;
+      for(const [,p] of peers) if(p.dc) max = Math.max(max, p.dc.bufferedAmount);
+      if(max < BUFFER_HIGH_WATER) resolve(); else setTimeout(check, 20);
+    };
+    check();
+  });
+}
+
+const dropZone = $('file-drop');
+dropZone.addEventListener('click', ()=> $('file-input').click());
+dropZone.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('file-input').click(); } });
+dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+// A missed drop shouldn't navigate the tab to the file.
+window.addEventListener('dragover', e=> e.preventDefault());
+window.addEventListener('drop', e=> e.preventDefault());
+$('file-input').addEventListener('change', e=>{ handleFiles(e.target.files); e.target.value = ''; });
+
+function handleFiles(fileList){
+  if(!anyOpenChannel()){ showToast('No one is connected yet', 'warn'); return; }
+  [...fileList].forEach(sendFile);
+}
+
+let fileCount = 0;
+function bumpFileCount(){
+  fileCount++;
+  const badge = $('file-count');
+  badge.style.display = 'inline-block'; badge.textContent = fileCount;
+}
+
+async function sendFile(file){
+  const transferId = uid(10);
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  sendPayload({ type:'file-start', data:{ transferId, name:file.name, size:file.size, mime:file.type || 'application/octet-stream', totalChunks, senderName: myName } });
+  renderOutgoingFileItem(transferId, file.name, file.size);
+  bumpFileCount();
+
+  const idBytes = new TextEncoder().encode(transferId); // 10 ASCII bytes
+  try{
+    for(let index = 0, offset = 0; offset < file.size; index++, offset += CHUNK_SIZE){
+      const payload = new Uint8Array(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer());
+      await waitForBufferedAmountLow();
+      const frame = new Uint8Array(HEADER_BYTES + payload.length);
+      frame.set(idBytes, 0);
+      new DataView(frame.buffer).setUint32(10, index);
+      frame.set(payload, HEADER_BYTES);
+      if(!sendBinary(frame.buffer)) throw new Error('lost connection');
+      updateFileProgress(transferId, Math.min(100, Math.round(((offset + payload.length) / file.size) * 100)));
+    }
+    sendPayload({ type:'file-end', data:{ transferId } });
+    updateFileProgress(transferId, 100, 'done', 'Sent ✓');
+  }catch(e){
+    updateFileProgress(transferId, null, 'failed', 'Failed');
+    showToast(`Could not send ${file.name} — connection lost`, 'err');
+  }
+}
+
+function processChunk(buf){
+  if(!(buf instanceof ArrayBuffer) || buf.byteLength < HEADER_BYTES) return;
+  const id = String.fromCharCode(...new Uint8Array(buf, 0, 10));
+  const t = incomingTransfers.get(id);
+  if(!t) return;
+  const index = new DataView(buf).getUint32(10);
+  if(index >= t.totalChunks || t.chunks[index]) return;
+  t.chunks[index] = buf.slice(HEADER_BYTES);
+  t.received++;
+  updateFileProgress(id, Math.round((t.received / t.totalChunks) * 100));
+}
+
+function fileItemId(id){ return 'file-item-' + id; }
+function addFileItem(id, icon, name, meta){
+  const empty = $('file-empty'); if(empty) empty.remove();
+  const el = document.createElement('div');
+  el.className = 'file-item'; el.id = fileItemId(id);
+  el.innerHTML = `
+    <div class="file-top">
+      <div style="min-width:0"><div class="fname" style="overflow-wrap:anywhere">${icon} ${esc(name)}</div><div class="fmeta">${esc(meta)}</div></div>
+      <div class="fpct" id="pct-${id}">0%</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="prog-${id}" style="width:0%"></div></div>`;
+  $('file-list').prepend(el);
+}
+function renderOutgoingFileItem(id, name, size){ addFileItem(id, '📤', name, `${fmtBytes(size)} · sending to everyone`); }
+function renderIncomingFileItem(id, t){ addFileItem(id, '📥', t.name, `${fmtBytes(t.size)} · from ${t.senderName}`); bumpFileCount(); }
+
+function updateFileProgress(id, pct, state, label){
+  const bar = $('prog-' + id), txt = $('pct-' + id), item = $(fileItemId(id));
+  if(pct != null && bar) bar.style.width = pct + '%';
+  if(txt) txt.textContent = label || (pct != null ? pct + '%' : '');
+  if(item && state) item.classList.add(state);
+}
+
+function completeIncomingTransfer(id){
+  const t = incomingTransfers.get(id);
+  if(!t) return;
+  incomingTransfers.delete(id);
+  if(t.received !== t.totalChunks){
+    updateFileProgress(id, null, 'failed', 'Incomplete');
+    showToast(`${t.name} arrived incomplete`, 'err');
+    return;
+  }
+  const url = URL.createObjectURL(new Blob(t.chunks, { type: t.mime }));
+  const top = document.querySelector('#' + fileItemId(id) + ' .file-top');
+  if(top){
+    const a = document.createElement('a');
+    a.className = 'dl'; a.href = url; a.download = t.name; a.textContent = '⬇ Download';
+    top.replaceChild(a, $('pct-' + id));
+  }
+  updateFileProgress(id, 100, 'done');
+  showToast(`Received ${t.name}`, 'ok');
+}
+
+/* =========================================================
+   CLEANUP
+   ========================================================= */
+window.addEventListener('pagehide', ()=>{
+  for(const [,p] of peers){ try{ if(p.dc) p.dc.close(); if(p.pc) p.pc.close(); }catch(e){} }
+});
+</script>
+</body>
+</html>

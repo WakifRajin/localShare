@@ -41,15 +41,30 @@ reachable on your local network, not the internet.
 
 ## No Node available? Use manual codes instead
 
-You can also just open `public/index.html` directly in a browser (double-click
-it) on each device — no server needed at all. In that case, or if the relay
-isn't reachable for some reason, the app automatically offers a "Use a manual
-code instead" link: the host copies a longer connection code and sends it to
-the joiner by any means (chat app, AirDrop, USB stick), and the joiner pastes
-back a short reply code to finish connecting. It's more copy-pasting, but
-still fully serverless.
+The app detects whether a relay is present. If it isn't (you opened
+`docs/index.html` directly, or you're on the hosted GitHub Pages site), it
+switches to manual mode automatically: the host copies a longer connection
+code and sends it to the joiner by any means (chat app, AirDrop, USB stick),
+and the joiner pastes back a reply code to finish connecting. It's more
+copy-pasting, but fully serverless.
+
+## Hosting on GitHub Pages
+
+The whole app is the static file `docs/index.html`, so it can be served from
+GitHub Pages: **Settings → Pages → Deploy from a branch → `main` → `/docs`**.
+Short codes need `server.js` and so aren't available there — the page uses
+manual codes. Devices must still be on the same network (no STUN/TURN is
+used, by design).
+
+## Features
+
+- Live chat with unread badges, shared document, drag-and-drop file transfer
+  (binary chunks, any number of participants), and a small shared terminal.
+- The host relays between participants, so everyone sees the same roster, and
+  joins/leaves are announced.
+- Dark and light themes; works on phones (tab bar layout).
 
 ## Files
 
 - `server.js` — the relay + static file server (`node server.js`)
-- `public/index.html` — the app itself
+- `docs/index.html` — the app itself
