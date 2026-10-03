@@ -45,6 +45,24 @@ class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 
+// Likely-real LAN addresses first: virtual adapters (VirtualBox, Docker, WSL, VMware, Hyper-V)
+// are pushed to the back so the address we advertise is one a phone can actually reach.
+function lanAddresses() {
+  const found = [];
+  for (const [name, nets] of Object.entries(os.networkInterfaces())) {
+    for (const net of nets || []) {
+      if (net.family !== 'IPv4' || net.internal) continue;
+      let score = 0;
+      if (/virtual|vbox|vmware|vethernet|hyper-v|docker|wsl|tailscale|zerotier|loopback|bluetooth/i.test(name)) score += 10;
+      if (net.address.startsWith('169.254.')) score += 20;                    // link-local, unusable
+      if (net.address.startsWith('192.168.56.')) score += 10;                 // VirtualBox host-only default
+      if (/^172\.(1[6-9]|2\d|3[01])\./.test(net.address)) score += 5;        // often Docker / WSL
+      found.push({ address: net.address, score });
+    }
+  }
+  return found.sort((a, b) => a.score - b.score).map(f => f.address);
+}
+
 function genCode() {
   let code;
   do {
@@ -127,7 +145,7 @@ const server = http.createServer(async (req, res) => {
 
     // --- Signaling API ---
     if (p === '/api/ping' && req.method === 'GET') {
-      return sendJSON(res, 200, { app: 'localshare', ok: true });
+      return sendJSON(res, 200, { app: 'localshare', ok: true, urls: lanAddresses().map(a => `http://${a}:${PORT}`) });
     }
 
     if (p === '/api/create' && req.method === 'POST') {
@@ -188,12 +206,7 @@ server.on('error', err => {
 });
 
 server.listen(PORT, () => {
-  const addrs = [];
-  for (const nets of Object.values(os.networkInterfaces())) {
-    for (const net of nets || []) {
-      if (net.family === 'IPv4' && !net.internal) addrs.push(net.address);
-    }
-  }
+  const addrs = lanAddresses();
   console.log('localShare relay is running.\n');
   console.log(`  On this machine:  http://localhost:${PORT}`);
   if (addrs.length) {

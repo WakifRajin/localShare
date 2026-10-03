@@ -168,11 +168,19 @@
   .waiting-line{ display:flex; align-items:center; gap:10px; font-size:.86rem; color:var(--accent); margin-top:14px; font-weight:500; }
   .relay-code-box{ display:flex; align-items:stretch; gap:8px; margin:16px 0 6px; }
   .relay-code{
-    font-family:var(--mono); font-size:2.2rem; font-weight:700; letter-spacing:.32em; text-indent:.32em; text-align:center;
+    font-family:var(--mono); font-size:1.9rem; font-weight:700; letter-spacing:.28em; text-indent:.28em; text-align:center;
     color:var(--accent); background:var(--surface-2); border:1px solid var(--accent-line); border-radius:var(--r); padding:16px 8px; flex:1;
     box-shadow:0 0 0 4px var(--accent-soft);
   }
-  .relay-link{ font-family:var(--mono); font-size:.8rem; color:var(--accent); word-break:break-all; }
+  .relay-link{ font-family:var(--mono); font-size:.76rem; color:var(--muted); word-break:break-all; }
+  .invite{ display:grid; grid-template-columns:176px 1fr; gap:20px; align-items:center; margin:18px 0 6px; }
+  .qr-wrap{ width:176px; height:176px; background:#fff; border-radius:16px; padding:10px; display:grid; place-items:center; box-shadow:0 0 0 1px var(--line); }
+  .qr-wrap svg{ width:100%; height:100%; display:block; }
+  .qr-wrap:empty{ background:linear-gradient(110deg, var(--surface-2) 30%, var(--surface-3) 50%, var(--surface-2) 70%); background-size:200% 100%; animation:shimmer 1.4s infinite linear; }
+  @keyframes shimmer{ to{ background-position:-200% 0; } }
+  .invite-side{ display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .invite-label{ font-size:.74rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .invite-banner{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--r-sm); background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent); font-size:.86rem; font-weight:600; margin-bottom:16px; }
   .fallback-note{ margin-top:18px; margin-bottom:0; }
   #join-code-input{ text-transform:uppercase; letter-spacing:.4em; text-indent:.4em; font-family:var(--mono); font-size:1.5rem; text-align:center; height:60px; font-weight:700; }
   .card-foot{ margin-top:22px; display:flex; justify-content:center; }
@@ -323,6 +331,9 @@
     .choose-grid{ grid-template-columns:1fr; }
     .choose-opt{ flex-direction:row; align-items:center; }
     .relay-code{ font-size:1.7rem; letter-spacing:.22em; text-indent:.22em; }
+    .invite{ grid-template-columns:1fr; justify-items:center; text-align:center; gap:14px; }
+    .invite-side{ width:100%; }
+    .qr-wrap{ width:168px; height:168px; }
     .topbar{ padding:0 12px; height:58px; }
     .brand h2{ display:none; }
     .top-actions .btn-text{ display:none; }
@@ -403,13 +414,14 @@
       <div class="logo"><svg class="i"><use href="#i-wifi"/></svg></div>
       <div><b>localShare</b><small>Local mesh workspace</small></div>
     </div>
-    <h1>Welcome. What should we call you?</h1>
-    <p class="sub">Everything runs browser-to-browser on your network. Nothing touches the internet — pick a display name to show others in the room.</p>
+    <div class="invite-banner" id="invite-banner" style="display:none"><svg class="i"><use href="#i-link"/></svg><span id="invite-banner-text">You've been invited to a session</span></div>
+    <h1 id="name-title">Welcome. What should we call you?</h1>
+    <p class="sub" id="name-sub">Chat, share a document and send files with people nearby — device to device, no accounts. Pick a display name to show others in the room.</p>
     <div class="field">
       <label for="name-input">Display name</label>
       <input type="text" id="name-input" maxlength="24" placeholder="e.g. Alex" autocomplete="off">
     </div>
-    <button class="btn primary block" style="height:46px" onclick="confirmName()">Continue <svg class="i sm"><use href="#i-arrow-right"/></svg></button>
+    <button class="btn primary block" id="name-btn" style="height:46px" onclick="confirmName()"><span id="name-btn-text">Continue</span> <svg class="i sm"><use href="#i-arrow-right"/></svg></button>
     <div class="card-foot">
       <a class="gh-link" href="https://github.com/WakifRajin/localShare" target="_blank" rel="noopener noreferrer">
         <svg class="i fill sm"><use href="#i-github"/></svg><span>Open source on GitHub</span>
@@ -440,27 +452,32 @@
           <span><b>Join a session</b><span class="d">Connect with a host's code</span></span>
         </button>
       </div>
-      <div class="mode-note"><span class="dot" id="mode-dot"></span><span id="mode-note-text">Checking for a relay server…</span></div>
+      <div class="mode-note"><span class="dot" id="mode-dot"></span><span id="mode-note-text">Checking connection options…</span></div>
     </div>
 
     <div id="step-host-relay" class="wizard-step">
-      <span class="chip step-tag">Host · short code</span>
-      <h1>Share this code</h1>
-      <p class="hint">Have others on your network open <span class="relay-link" id="relay-share-url">this page</span> and enter the code below.</p>
-      <div class="relay-code-box">
-        <div class="relay-code" id="relay-code-display">•••••</div>
-        <button class="icon-btn bordered" style="height:auto" title="Copy code" aria-label="Copy code" onclick="copyText(document.getElementById('relay-code-display').textContent, 'Code copied')"><svg class="i"><use href="#i-copy"/></svg></button>
+      <span class="chip step-tag">Host</span>
+      <h1>Invite people</h1>
+      <p class="hint">Scan the QR code with a phone camera, or open the link and type the code.</p>
+      <div class="invite">
+        <div class="qr-wrap" id="invite-qr" role="img" aria-label="QR code to join this session"></div>
+        <div class="invite-side">
+          <div class="invite-label">Session code</div>
+          <div class="relay-code" id="relay-code-display">•••••</div>
+          <button class="btn sm block" onclick="copyText(document.getElementById('relay-code-display').textContent, 'Code copied')"><svg class="i sm"><use href="#i-copy"/></svg> Copy code</button>
+          <div class="relay-link" id="relay-share-url"></div>
+        </div>
       </div>
-      <div class="waiting-line" id="host-relay-status"><span class="pulse"></span> Generating code…</div>
+      <div class="waiting-line" id="host-relay-status"><span class="pulse"></span> Preparing your invite…</div>
       <div class="btn-row">
         <button class="btn" onclick="cancelWizardStep()"><svg class="i sm"><use href="#i-arrow-left"/></svg> Back</button>
-        <button class="btn" onclick="copyText(window.location.origin + window.location.pathname, 'Link copied')"><svg class="i sm"><use href="#i-link"/></svg> Copy page link</button>
+        <button class="btn primary grow" onclick="copyInvite()"><svg class="i sm"><use href="#i-link"/></svg> Copy invite link</button>
       </div>
-      <p class="hint fallback-note">Relay not reachable? <button class="link-btn" onclick="showWizardStep('step-host-1')">Use a manual code instead</button></p>
+      <p class="hint fallback-note">Having trouble? <button class="link-btn" onclick="showWizardStep('step-host-1')">Pair without internet</button></p>
     </div>
 
     <div id="step-host-1" class="wizard-step">
-      <span class="chip step-tag">Host · manual · 1 of 2</span>
+      <span class="chip step-tag">Offline pairing · 1 of 2</span>
       <h1>Send this code</h1>
       <p class="hint">Send this connection code to the person joining — chat app, email, USB, anything works. It only encodes local routing info.</p>
       <textarea class="code-box" id="host-offer" readonly placeholder="Generating connection code…" aria-label="Connection code to send"></textarea>
@@ -471,7 +488,7 @@
       </div>
     </div>
     <div id="step-host-2" class="wizard-step">
-      <span class="chip step-tag">Host · manual · 2 of 2</span>
+      <span class="chip step-tag">Offline pairing · 2 of 2</span>
       <h1>Paste their reply</h1>
       <p class="hint">The joining device generates a reply code. Paste it below to finish connecting.</p>
       <textarea class="code-box" id="host-answer" placeholder="Paste the reply code here…" aria-label="Reply code from the joining device"></textarea>
@@ -482,9 +499,9 @@
     </div>
 
     <div id="step-join-relay" class="wizard-step">
-      <span class="chip step-tag">Join · short code</span>
+      <span class="chip step-tag">Join</span>
       <h1>Enter the code</h1>
-      <p class="hint">Ask the host for their 5-character code.</p>
+      <p class="hint">Type the 5-character code from the host's screen — or just scan their QR code.</p>
       <div class="field">
         <input type="text" id="join-code-input" maxlength="5" placeholder="•••••" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="5-character session code">
         <div class="field-error" id="join-error" role="alert"></div>
@@ -494,18 +511,18 @@
         <button class="btn" onclick="cancelWizardStep()"><svg class="i sm"><use href="#i-arrow-left"/></svg> Back</button>
         <button class="btn primary grow" id="join-code-btn" onclick="joinWithCode()">Connect <svg class="i sm"><use href="#i-arrow-right"/></svg></button>
       </div>
-      <p class="hint fallback-note">Have a long connection code instead? <button class="link-btn" onclick="showWizardStep('step-join-1')">Use manual exchange</button></p>
+      <p class="hint fallback-note">Can't connect? <button class="link-btn" onclick="showWizardStep('step-join-1')">Pair without internet</button></p>
     </div>
     <div id="step-join-relay-waiting" class="wizard-step">
-      <span class="chip step-tag">Join · short code</span>
+      <span class="chip step-tag">Join</span>
       <h1>Connecting…</h1>
-      <p class="hint">Finishing the handshake with the host over your local network.</p>
+      <p class="hint">Setting up a direct connection with the host.</p>
       <div class="waiting-line"><span class="pulse"></span> Almost there…</div>
       <div class="btn-row"><button class="btn" onclick="cancelWizardStep()"><svg class="i sm"><use href="#i-x"/></svg> Cancel</button></div>
     </div>
 
     <div id="step-join-1" class="wizard-step">
-      <span class="chip step-tag">Join · manual · 1 of 2</span>
+      <span class="chip step-tag">Offline pairing · 1 of 2</span>
       <h1>Paste the host's code</h1>
       <p class="hint">Paste the connection code you received from the host.</p>
       <textarea class="code-box" id="join-offer" placeholder="Paste the host's code here…" aria-label="Host connection code"></textarea>
@@ -515,7 +532,7 @@
       </div>
     </div>
     <div id="step-join-2" class="wizard-step">
-      <span class="chip step-tag">Join · manual · 2 of 2</span>
+      <span class="chip step-tag">Offline pairing · 2 of 2</span>
       <h1>Send this reply back</h1>
       <p class="hint">Copy this reply code and send it to the host to finish connecting.</p>
       <textarea class="code-box" id="join-answer" readonly aria-label="Reply code to send to the host"></textarea>
@@ -621,13 +638,241 @@
 </div>
 
 <script>
+/* qrcode-generator 2.0.4 (MIT) — inlined so QR codes work offline */
+//---------------------------------------------------------------------
+// QR Code Generator for JavaScript
+// Copyright (c) 2009 Kazuhiko Arase
+// URL: http://www.d-project.com/
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//---------------------------------------------------------------------
+var qrcode=function(){
+//---------------------------------------------------------------------
+// qrcode
+//---------------------------------------------------------------------
+/**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){
+// vertical
+for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}
+// horizontal
+for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}
+// fixed module
+o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}
+// calc num max data.
+var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";
+// end code
+// padding
+for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);
+// padding
+for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(
+// Called by options.
+// overwrite cellSize and margin.
+t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(
+// Compose alt property surrogate
+e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(
+// Compose title property surrogate
+n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",
+// Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),
+// Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(o*r,n*r,r,r)},f};
+//---------------------------------------------------------------------
+// qrcode.stringToBytes
+//---------------------------------------------------------------------
+t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,
+//---------------------------------------------------------------------
+// qrcode.createStringToBytes
+//---------------------------------------------------------------------
+/**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+t.createStringToBytes=function(t,r){
+// create conversion map.
+var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?
+// 1byte
+r.push(a):(
+// 2bytes
+r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};
+//---------------------------------------------------------------------
+// QRMode
+//---------------------------------------------------------------------
+var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)
+// 1 - 9
+switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)
+// 10 - 26
+switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;
+// 27 - 40
+switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){
+// LEVEL1
+for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}
+// LEVEL2
+for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}
+// LEVEL3
+for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);
+// LEVEL4
+var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){
+// initialize tables
+for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();
+//---------------------------------------------------------------------
+// QRErrorCorrectionLevel
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+// qrPolynomial
+//---------------------------------------------------------------------
+function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);
+// recursive call
+return k(e,0).mod(t)}};return n}
+//---------------------------------------------------------------------
+// QRRSBlock
+//---------------------------------------------------------------------
+var A=function(){var t=[
+// L
+// M
+// Q
+// H
+// 1
+[1,26,19],[1,26,16],[1,26,13],[1,26,9],
+// 2
+[1,44,34],[1,44,28],[1,44,22],[1,44,16],
+// 3
+[1,70,55],[1,70,44],[2,35,17],[2,35,13],
+// 4
+[1,100,80],[2,50,32],[2,50,24],[4,25,9],
+// 5
+[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],
+// 6
+[2,86,68],[4,43,27],[4,43,19],[4,43,15],
+// 7
+[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],
+// 8
+[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],
+// 9
+[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],
+// 10
+[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],
+// 11
+[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],
+// 12
+[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],
+// 13
+[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],
+// 14
+[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],
+// 15
+[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],
+// 16
+[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],
+// 17
+[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],
+// 18
+[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],
+// 19
+[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],
+// 20
+[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],
+// 21
+[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],
+// 22
+[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],
+// 23
+[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],
+// 24
+[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],
+// 25
+[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],
+// 26
+[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],
+// 27
+[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],
+// 28
+[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],
+// 29
+[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],
+// 30
+[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],
+// 31
+[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],
+// 32
+[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],
+// 33
+[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],
+// 34
+[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],
+// 35
+[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],
+// 36
+[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],
+// 37
+[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],
+// 38
+[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],
+// 39
+[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],
+// 40
+[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){
+// self test for sjis support.
+var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){
+//---------------------------------
+// GIF Signature
+t.writeString("GIF87a"),
+//---------------------------------
+// Screen Descriptor
+t.writeShort(e),t.writeShort(n),t.writeByte(128),// 2bit
+t.writeByte(0),t.writeByte(0),
+//---------------------------------
+// Global Color Map
+// black
+t.writeByte(0),t.writeByte(0),t.writeByte(0),
+// white
+t.writeByte(255),t.writeByte(255),t.writeByte(255),
+//---------------------------------
+// Image Descriptor
+t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);
+//---------------------------------
+// Local Color Map
+//---------------------------------
+// Raster Data
+var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),
+//---------------------------------
+// GIF Terminator
+t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});
+// clear code
+h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),
+// end code
+h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(
+// padding
+var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};
+//---------------------------------------------------------------------
+// qrBitBuffer
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+// returns qrcode function.
+return t}();
+// multibyte support
+qrcode.stringToBytesFuncs["UTF-8"]=function(t){
+// http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,
+// UTF-16 encodes 0x10000-0x10FFFF by
+// subtracting 0x10000 and splitting the
+// 20 bits of 0x0-0xFFFFF into two halves
+n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
+</script>
+<script>
 /* =========================================================
    STATE
    ========================================================= */
 const $ = id => document.getElementById(id);
 const BASE_TITLE = document.title;
-const RELAY_BASE = '.'; // relative to this page, so it also works when served from a sub-path
-const config = { iceServers: [] }; // empty = local-network-only ICE candidates, no external STUN/TURN
+const config = { iceServers: [] }; // stays empty (LAN-only) unless we're in online mode — see detectSignal()
 
 let myId = uid(8);
 let myName = '';
@@ -642,9 +887,10 @@ const incomingTransfers = new Map();
 let pendingWizardKey = null;    // handshake still waiting on the other side (safe to tear down on cancel)
 let wizardKey = null;           // connection the open wizard step is about (closes the wizard once it's up)
 let hasEnteredApp = false;
-let hostPollHandle = null;      // interval polling the relay for an answer
+let stopWaiting = null;         // cancels the host's wait for a joiner's answer
 let connectTimer = null;        // "still connecting…" nudge
-let relayAvailable = null;      // null = unknown, true/false once detected
+let inviteCode = null;          // code currently shown to the host
+let inviteFromLink = null;      // code carried by an invite link / QR (#j=CODE)
 let currentView = 'dashboard';
 let unreadChat = 0;
 let lastChat = { id: null, ts: 0 };
@@ -708,27 +954,181 @@ function showToast(text, kind){
 }
 
 /* =========================================================
-   RELAY DETECTION (short codes need server.js; GitHub Pages / file:// don't have it)
+   SIGNALING — how a short code gets two browsers talking
+     local  : server.js on your own network (/api/*)  — works fully offline
+     online : public ntfy.sh topics — works from the hosted site, across networks
+     manual : copy & paste, last resort
+   Only connection info (no chat, files or text) ever passes through either.
    ========================================================= */
-const relayReady = (async function detectRelay(){
-  // No relay can exist on file:// or static hosting such as GitHub Pages — don't even probe.
-  if(location.protocol === 'file:' || /\.github\.io$/i.test(location.hostname)){ relayAvailable = false; return false; }
+const PUBLIC_URL = 'https://wakifrajin.github.io/localShare/';
+const NTFY = 'https://ntfy.sh';
+const NS = 'lshare1';
+const CODE_TTL_MS = 15 * 60 * 1000;
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const STUN = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
+let signalMode = null;   // 'local' | 'online' | 'manual'
+let lanUrls = [];
+
+class SignalError extends Error { constructor(kind){ super(kind); this.kind = kind; } }
+
+function genCode(){
+  const r = crypto.getRandomValues(new Uint8Array(5));
+  return Array.from(r, b => CODE_CHARS[b % CODE_CHARS.length]).join('');
+}
+function fetchT(url, opts, ms){
+  const ctl = new AbortController();
+  const t = setTimeout(()=> ctl.abort(), ms || 8000);
+  return fetch(url, { ...opts, signal: ctl.signal }).finally(()=> clearTimeout(t));
+}
+function expectOk(r){
+  if(r.status === 404) throw new SignalError('notfound');
+  if(r.status === 409) throw new SignalError('used');
+  if(r.status === 429) throw new SignalError('ratelimit');
+  if(!r.ok) throw new SignalError('down');
+  return r;
+}
+
+// --- backend 1: server.js on the local network
+const localSignal = {
+  async create(offer){
+    const r = expectOk(await fetchT('./api/create', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ offer }) }));
+    return (await r.json()).code;
+  },
+  async fetchOffer(code){
+    const r = expectOk(await fetchT('./api/offer/' + code, { cache:'no-store' }));
+    return (await r.json()).offer;
+  },
+  async sendAnswer(code, answer){
+    expectOk(await fetchT('./api/answer/' + code, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ answer }) }));
+  },
+  waitAnswer(code, onAnswer, onExpired){
+    let stopped = false;
+    const tick = async ()=>{
+      if(stopped) return;
+      try{
+        const r = await fetchT('./api/answer/' + code, { cache:'no-store' });
+        if(stopped) return;
+        if(r.status === 404){ stopped = true; onExpired(); return; }
+        if(r.ok && r.status !== 202){ const { answer } = await r.json(); stopped = true; onAnswer(answer); return; }
+      }catch(e){ /* transient — retry */ }
+      setTimeout(tick, 1500);
+    };
+    tick();
+    return ()=>{ stopped = true; };
+  }
+};
+
+// --- backend 2: public ntfy.sh topics (no account, CORS-enabled, push via SSE)
+async function ntfyLatest(topic){
+  const r = expectOk(await fetchT(`${NTFY}/${topic}/json?poll=1&since=all`, { cache:'no-store' }));
+  let last = null;
+  for(const line of (await r.text()).split('\n')){
+    if(!line) continue;
+    try{ const m = JSON.parse(line); if(m.event === 'message') last = m; }catch(e){}
+  }
+  if(!last) return null;
+  try{ return JSON.parse(last.message); }catch(e){ return null; }
+}
+async function ntfyPost(topic, payload){
+  const body = JSON.stringify({ t: Date.now(), d: payload });
+  if(body.length > 3900) throw new SignalError('down'); // ntfy message size limit
+  expectOk(await fetchT(`${NTFY}/${topic}`, { method:'POST', body }));
+}
+const onlineSignal = {
+  async create(offer){
+    for(let i = 0; i < 5; i++){
+      const code = genCode();
+      if(await ntfyLatest(`${NS}-o-${code}`)) continue; // already taken, roll again
+      await ntfyPost(`${NS}-o-${code}`, offer);
+      return code;
+    }
+    throw new SignalError('down');
+  },
+  async fetchOffer(code){
+    const m = await ntfyLatest(`${NS}-o-${code}`);
+    if(!m || Date.now() - m.t > CODE_TTL_MS) throw new SignalError('notfound');
+    return m.d;
+  },
+  async sendAnswer(code, answer){
+    const topic = `${NS}-a-${code}`;
+    if(await ntfyLatest(topic)) throw new SignalError('used'); // first joiner wins
+    await ntfyPost(topic, answer);
+  },
+  waitAnswer(code, onAnswer, onExpired){
+    let done = false;
+    const es = new EventSource(`${NTFY}/${NS}-a-${code}/sse?since=all`);
+    const expiry = setTimeout(()=>{ if(!done){ finish(); onExpired(); } }, CODE_TTL_MS);
+    function finish(){ done = true; es.close(); clearTimeout(expiry); }
+    es.onmessage = e => {
+      try{
+        const m = JSON.parse(e.data);
+        if(m.event !== 'message' || done) return;
+        const payload = JSON.parse(m.message);
+        finish(); onAnswer(payload.d);
+      }catch(err){ /* ignore malformed */ }
+    };
+    return ()=>{ if(!done) finish(); };
+  }
+};
+function signal(){ return signalMode === 'local' ? localSignal : onlineSignal; }
+
+const signalReady = (async function detectSignal(){
+  // No local relay can exist on file:// or static hosting, so don't even probe there.
+  const noLocal = location.protocol === 'file:' || /\.github\.io$/i.test(location.hostname);
+  if(!noLocal){
+    try{
+      const r = await fetchT('./api/ping', { cache:'no-store' }, 2500);
+      const j = r.ok ? await r.json() : null;
+      if(j && j.app === 'localshare'){ lanUrls = Array.isArray(j.urls) ? j.urls : []; return (signalMode = 'local'); }
+    }catch(e){}
+  }
   try{
-    const ctl = new AbortController();
-    const t = setTimeout(()=>ctl.abort(), 2500);
-    const r = await fetch(RELAY_BASE + '/api/ping', { signal: ctl.signal, cache: 'no-store' });
-    clearTimeout(t);
+    const r = await fetchT(NTFY + '/v1/health', { cache:'no-store' }, 3500);
     const j = r.ok ? await r.json() : null;
-    relayAvailable = !!(j && j.app === 'localshare');
-  }catch(e){ relayAvailable = false; }
-  return relayAvailable;
-})().then(ok => {
-  $('mode-dot').className = 'dot ' + (ok ? 'online' : 'connecting');
-  $('mode-note-text').textContent = ok
-    ? 'Relay found — short 5-character codes are available.'
-    : 'No relay on this page — you\'ll exchange connection codes manually (copy & paste). Run server.js on a machine for short codes.';
-  return ok;
+    if(j && j.healthy){ config.iceServers = STUN; return (signalMode = 'online'); }
+  }catch(e){}
+  return (signalMode = 'manual');
+})().then(mode => {
+  $('mode-dot').className = 'dot ' + (mode === 'manual' ? 'connecting' : 'online');
+  $('mode-note-text').textContent = {
+    local:  'Short codes ready — anyone on your network can join.',
+    online: 'Short codes ready — works across networks. Only connection info is exchanged via ntfy.sh; chat and files stay device-to-device.',
+    manual: 'Can\'t reach a code service, so you\'ll pair devices by copy & paste instead.'
+  }[mode];
+  return mode;
 });
+
+// Where invitations should point (a phone can't open "localhost").
+function shareBase(){
+  if(location.protocol === 'file:') return PUBLIC_URL;
+  const isLoopback = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  if(signalMode === 'local' && isLoopback && lanUrls.length) return lanUrls[0] + location.pathname;
+  return location.origin + location.pathname;
+}
+function inviteUrl(code){ return shareBase() + '#j=' + code; }
+function copyInvite(){ if(inviteCode) copyText(inviteUrl(inviteCode), 'Invite link copied'); else showToast('Still preparing your invite…', 'warn'); }
+
+function renderQR(text){
+  const box = $('invite-qr');
+  try{
+    const q = qrcode(0, 'M');
+    q.addData(text); q.make();
+    box.innerHTML = q.createSvgTag({ cellSize:4, margin:0, scalable:true });
+  }catch(e){ box.innerHTML = ''; }
+}
+
+// Opened from an invite link / scanned QR?
+(function readInviteFromLink(){
+  const m = /[#&]j=([A-Za-z0-9]{5})(?![A-Za-z0-9])/.exec(location.hash);
+  if(!m) return;
+  inviteFromLink = m[1].toUpperCase();
+  try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+  $('invite-banner').style.display = 'flex';
+  $('invite-banner-text').textContent = `You've been invited to session ${inviteFromLink}`;
+  $('name-title').textContent = 'Almost there — pick a name';
+  $('name-sub').textContent = 'Choose how you\'ll appear to everyone, and we\'ll connect you right away.';
+  $('name-btn-text').textContent = 'Join session';
+})();
 
 /* =========================================================
    NAME GATE
@@ -743,6 +1143,7 @@ function confirmName(){
   lsSet('localshare_display_name', myName);
   $('name-gate').classList.add('hidden');
   $('wizard-modal').classList.remove('hidden');
+  if(inviteFromLink){ const code = inviteFromLink; inviteFromLink = null; startJoin(code); return; }
   showWizardStep('step-choose');
 }
 
@@ -760,13 +1161,16 @@ function wizardOpen(){ return !$('wizard-modal').classList.contains('hidden'); }
 function resetWizardFields(){
   ['host-offer','host-answer','join-offer','join-answer','join-code-input'].forEach(id=>{ $(id).value = ''; });
   $('relay-code-display').textContent = '•••••';
+  $('invite-qr').innerHTML = '';
+  $('relay-share-url').textContent = '';
+  inviteCode = null;
   $('join-relay-status').style.display = 'none';
   $('join-error').textContent = '';
   $('join-code-btn').disabled = false;
 }
 // Tear down whatever handshake is currently in progress (not established connections).
 function abortPending(){
-  clearInterval(hostPollHandle); hostPollHandle = null;
+  if(stopWaiting){ stopWaiting(); stopWaiting = null; }
   clearTimeout(connectTimer); connectTimer = null;
   if(pendingWizardKey){
     dropPeer(pendingWizardKey);
@@ -927,7 +1331,7 @@ function rosterList(){
 function armConnectTimer(){
   clearTimeout(connectTimer);
   connectTimer = setTimeout(()=>{
-    showToast('Still connecting… both devices must be on the same network, and the host page must stay open.', 'warn');
+    showToast('Still connecting… keep the host page open. Some networks (e.g. strict Wi-Fi or mobile data) block direct connections.', 'warn');
   }, 25000);
 }
 
@@ -939,10 +1343,10 @@ async function startHost(){
   const key = 'peer-' + uid(6);
   pendingWizardKey = wizardKey = key;
 
-  const useRelay = await relayReady;
+  const mode = await signalReady;
   if(pendingWizardKey !== key) return; // cancelled while we were checking
-  showWizardStep(useRelay ? 'step-host-relay' : 'step-host-1');
-  setHostRelayStatus('Generating code…');
+  showWizardStep(mode === 'manual' ? 'step-host-1' : 'step-host-relay');
+  setHostRelayStatus('Preparing your invite…');
 
   const { pc } = makePeerConnection(key);
   setupDataChannel(key, pc.createDataChannel('localshare-' + key));
@@ -955,26 +1359,32 @@ async function startHost(){
     return;
   }
   if(pendingWizardKey !== key) return;
-  $('host-offer').value = encodeCode(pc.localDescription); // manual fallback, always populated
+  $('host-offer').value = encodeCode(pc.localDescription); // offline-pairing fallback, always populated
+  if(mode === 'manual') return;
 
-  if(!useRelay) return;
   try{
-    const resp = await fetch(RELAY_BASE + '/api/create', {
-      method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ offer: pc.localDescription })
-    });
-    if(!resp.ok) throw new Error('relay unavailable');
-    const { code } = await resp.json();
+    const code = await signal().create(pc.localDescription);
     if(pendingWizardKey !== key) return;
-    $('relay-code-display').textContent = code;
-    $('relay-share-url').textContent = location.origin + location.pathname;
-    setHostRelayStatus('Waiting for someone to enter this code…');
-    pollForAnswer(key, code);
+    showInvite(code);
+    stopWaiting = signal().waitAnswer(code, answer => onAnswer(key, answer), ()=>{
+      if(pendingWizardKey !== key) return;
+      showToast('That invite expired — made a fresh one', 'warn');
+      startHost();
+    });
   }catch(e){
     if(pendingWizardKey !== key) return;
-    showToast('Relay unreachable — switched to a manual code', 'warn');
+    showToast('Couldn\'t reach the code service — switched to offline pairing', 'warn');
     showWizardStep('step-host-1');
   }
+}
+
+function showInvite(code){
+  inviteCode = code;
+  const url = inviteUrl(code);
+  $('relay-code-display').textContent = code;
+  $('relay-share-url').textContent = url.replace(/^https?:\/\//, '');
+  renderQR(url);
+  setHostRelayStatus('Waiting for someone to join…');
 }
 
 function setHostRelayStatus(text, kind){
@@ -982,31 +1392,17 @@ function setHostRelayStatus(text, kind){
   el.innerHTML = (kind ? '' : '<span class="pulse"></span> ') + esc(text);
 }
 
-function pollForAnswer(key, code){
-  clearInterval(hostPollHandle);
-  hostPollHandle = setInterval(async ()=>{
-    const p = peers.get(key);
-    if(!p || pendingWizardKey !== key || p.pc.signalingState !== 'have-local-offer'){ clearInterval(hostPollHandle); return; }
-    try{
-      const resp = await fetch(RELAY_BASE + '/api/answer/' + code, { cache:'no-store' });
-      if(resp.status === 202) return; // still waiting
-      if(resp.status === 404){
-        // Code expired on the relay — quietly make a fresh one.
-        clearInterval(hostPollHandle);
-        showToast('That code expired — generated a new one', 'warn');
-        startHost();
-        return;
-      }
-      if(!resp.ok) return;
-      const { answer } = await resp.json();
-      clearInterval(hostPollHandle);
-      if(peers.get(key) !== p) return;
-      setHostRelayStatus('Connecting…');
-      await p.pc.setRemoteDescription(answer);
-      pendingWizardKey = null;
-      armConnectTimer();
-    }catch(e){ /* transient network hiccup — keep polling */ }
-  }, 1500);
+async function onAnswer(key, answer){
+  const p = peers.get(key);
+  if(!p || pendingWizardKey !== key) return;
+  setHostRelayStatus('Someone joined — connecting…');
+  try{
+    await p.pc.setRemoteDescription(answer);
+    pendingWizardKey = null;
+    armConnectTimer();
+  }catch(e){
+    showToast('Could not complete the connection: ' + e.message, 'err');
+  }
 }
 
 async function wizardConnectHost(){
@@ -1026,11 +1422,22 @@ async function wizardConnectHost(){
 }
 
 /* ---- JOIN FLOW ---- */
-async function startJoin(){
+async function startJoin(prefill){
   abortPending();
   resetWizardFields();
-  const useRelay = await relayReady;
-  showWizardStep(useRelay ? 'step-join-relay' : 'step-join-1');
+  if(prefill){ // arrived via invite link / QR: show progress immediately
+    showWizardStep('step-join-relay');
+    $('join-code-input').value = prefill;
+    $('join-relay-status').style.display = 'flex';
+  }
+  const mode = await signalReady;
+  if(mode === 'manual'){
+    if(prefill) showToast('Invite links need a code service — use offline pairing instead', 'warn');
+    showWizardStep('step-join-1');
+    return;
+  }
+  showWizardStep('step-join-relay');
+  if(prefill) joinWithCode();
 }
 
 async function createAnswerFor(offer){
@@ -1059,28 +1466,21 @@ async function joinWithCode(){
   statusEl.innerHTML = '<span class="pulse"></span> Looking up code…';
 
   try{
-    const offerResp = await fetch(RELAY_BASE + '/api/offer/' + code, { cache:'no-store' });
-    if(offerResp.status === 404){ errEl.textContent = 'Code not found or expired — check it with the host.'; return; }
-    if(offerResp.status === 429){ errEl.textContent = 'Too many attempts — wait a minute and try again.'; return; }
-    if(!offerResp.ok) throw new Error('relay unavailable');
-    const { offer } = await offerResp.json();
-
+    const offer = await signal().fetchOffer(code);
+    statusEl.innerHTML = '<span class="pulse"></span> Connecting…';
     const answer = await createAnswerFor(offer);
-    const post = await fetch(RELAY_BASE + '/api/answer/' + code, {
-      method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ answer })
-    });
-    if(post.status === 409){
-      abortPending();
-      errEl.textContent = 'Someone else already joined with that code — ask the host for a new one.';
-      return;
-    }
-    if(!post.ok) throw new Error('relay rejected answer');
+    await signal().sendAnswer(code, answer);
     showWizardStep('step-join-relay-waiting');
     armConnectTimer();
   }catch(e){
     abortPending();
-    errEl.innerHTML = 'Could not reach the relay. <button class="link-btn" onclick="showWizardStep(\'step-join-1\')">Use manual exchange</button>';
+    const msg = {
+      notfound:  'Code not found or expired — check it with the host.',
+      used:      'Someone else already joined with that code — ask the host for a new one.',
+      ratelimit: 'Too many attempts — wait a minute and try again.'
+    }[e && e.kind];
+    if(msg) errEl.textContent = msg;
+    else errEl.innerHTML = 'Couldn\'t reach the code service. Check your internet connection, or <button class="link-btn" onclick="showWizardStep(\'step-join-1\')">pair without internet</button>.';
   }finally{
     statusEl.style.display = 'none';
     btn.disabled = false;

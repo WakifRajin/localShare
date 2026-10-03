@@ -1,60 +1,59 @@
 # localShare | local mesh workspace
 
-Chat, a live shared text doc, and file transfer between devices on the same
-network. No internet, no accounts, no cloud service — devices talk directly
-over WebRTC once connected.
+Chat, a live shared document, and file transfer between devices — peer to peer
+over WebRTC. No accounts, no cloud storage: once two browsers are connected,
+everything flows directly between them.
 
-## Quick start (short 5-character codes)
+**Try it now:** https://wakifrajin.github.io/localShare/
 
-Requires [Node.js](https://nodejs.org) (any recent version) on **one** machine
-— the others just need a browser.
+## How joining works
+
+1. The host picks a name and chooses **Host a session**. They get a **QR code**,
+   a 5-character code, and an invite link.
+2. Everyone else scans the QR code with their phone camera (or opens the link, or
+   types the code). They pick a name and they're in. No copy-pasting.
+3. The host can invite more people at any time with **Invite** — each invite
+   gets a fresh code.
+
+## Three ways the code gets exchanged
+
+localShare picks the best one automatically:
+
+| Mode | When | What's used |
+| --- | --- | --- |
+| **Local relay** | you run `node server.js` | your own machine, fully offline |
+| **Online** | the hosted site, or any copy of `docs/index.html` with internet | public [ntfy.sh](https://ntfy.sh) topics + Google/Cloudflare STUN, so it works across networks |
+| **Offline pairing** | nothing else is reachable | copy & paste a code each way (also works from `file://`) |
+
+In every mode only the small WebRTC connection descriptions are exchanged
+(no chat, files or text). In **online** mode that info goes via ntfy.sh and your
+public IP is visible to the STUN servers; use the local relay if you'd rather
+keep everything on your own network. Direct connections can fail on very strict
+networks (e.g. some mobile data / corporate Wi-Fi) since no TURN server is used.
+
+## Local relay (fully offline)
+
+Requires [Node.js](https://nodejs.org) on **one** machine; others just need a browser.
 
 ```
 node server.js
 ```
-
-You'll see something like:
 
 ```
 On this machine:  http://localhost:8787
 On your network:  http://192.168.1.42:8787
 ```
 
-1. Open the "On your network" link yourself, pick a name, choose **Host a
-   session** — you'll get a 5-character code.
-2. Everyone else on the same Wi‑Fi/LAN opens that same link in their browser,
-   chooses **Join a session**, and types the code in.
-3. That's it — chat, the shared text tab, and file drops all sync live.
-
-The host can invite more people at any time with the **➕ Invite** button —
-each invite gets its own fresh code.
-
-### What the server does (and doesn't do)
-
-`server.js` only helps two browsers find each other — it hands out a short
-code, holds onto the connection info for a few minutes, and forgets it the
-moment it's used (or after 15 minutes, whichever is first). Once connected,
-chat messages, the shared text, and files travel directly between browsers
-and never pass through the server. It has zero dependencies (just Node's
-built-ins) and never makes an outbound request — it only needs to be
-reachable on your local network, not the internet.
-
-## No Node available? Use manual codes instead
-
-The app detects whether a relay is present. If it isn't (you opened
-`docs/index.html` directly, or you're on the hosted GitHub Pages site), it
-switches to manual mode automatically: the host copies a longer connection
-code and sends it to the joiner by any means (chat app, AirDrop, USB stick),
-and the joiner pastes back a reply code to finish connecting. It's more
-copy-pasting, but fully serverless.
+Open the page, host a session, and share the QR code. The QR always points at
+your LAN address (not `localhost`), so phones can open it. `server.js` has zero
+dependencies, never makes an outbound request, hands out a code, keeps the
+connection info for up to 15 minutes, and forgets it once it's used. Failed code
+lookups are rate-limited.
 
 ## Hosting on GitHub Pages
 
-The whole app is the static file `docs/index.html`, so it can be served from
-GitHub Pages: **Settings → Pages → Deploy from a branch → `main` → `/docs`**.
-Short codes need `server.js` and so aren't available there — the page uses
-manual codes. Devices must still be on the same network (no STUN/TURN is
-used, by design).
+The whole app is the static file `docs/index.html`: **Settings → Pages → Deploy
+from a branch → `main` → `/docs`**. It runs in *online* mode there.
 
 ## Features
 
@@ -66,5 +65,6 @@ used, by design).
 
 ## Files
 
-- `server.js` — the relay + static file server (`node server.js`)
-- `docs/index.html` — the app itself
+- `server.js` — the optional local relay + static file server
+- `docs/index.html` — the app itself (includes an inlined MIT-licensed
+  [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) for the QR code)
