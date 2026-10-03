@@ -8,12 +8,14 @@ everything flows directly between them.
 
 ## How joining works
 
-1. The host picks a name and chooses **Host a session**. They get a **QR code**,
-   a 5-character code, and an invite link.
-2. Everyone else scans the QR code with their phone camera (or opens the link, or
-   types the code). They pick a name and they're in. No copy-pasting.
-3. The host can invite more people at any time with **Invite** — each invite
-   gets a fresh code.
+**Nearby devices (like PairDrop)** — open the site on two devices on the same
+Wi-Fi. Each shows up on the other automatically; tap one, the other taps
+**Accept**, and you're connected. Anyone else on the network can then connect to
+the host the same way.
+
+**Codes, QR and links** — for people who aren't on your network, the host picks
+**Host with a code** and shares the QR code, the 5-character code, or the invite
+link. Scanning or opening the link asks only for a name and joins automatically.
 
 ## Three ways the code gets exchanged
 
@@ -25,11 +27,25 @@ localShare picks the best one automatically:
 | **Online** | the hosted site, or any copy of `docs/index.html` with internet | public [ntfy.sh](https://ntfy.sh) topics + Google/Cloudflare STUN, so it works across networks |
 | **Offline pairing** | nothing else is reachable | copy & paste a code each way (also works from `file://`) |
 
-In every mode only the small WebRTC connection descriptions are exchanged
-(no chat, files or text). In **online** mode that info goes via ntfy.sh and your
-public IP is visible to the STUN servers; use the local relay if you'd rather
-keep everything on your own network. Direct connections can fail on very strict
-networks (e.g. some mobile data / corporate Wi-Fi) since no TURN server is used.
+### How nearby discovery works (no server of ours)
+
+Devices behind the same router share a public IP. Each device asks a STUN server
+for its public IPv4, hashes it into a room name, and meets the others on public
+MQTT-over-WebSocket brokers (HiveMQ, EMQX, Mosquitto — several at once for
+reliability). Everything on the brokers is AES-GCM encrypted with a key derived
+from that IP, so they only see noise, and only presence and the WebRTC handshake
+travel that way — never chat, files or text. Anyone on the same public IP (e.g. a
+cafe's Wi-Fi) can see your device name and send a request, but nothing connects
+until you accept. Discovery works on the hosted site and any copy served over
+HTTPS or `localhost`; it needs internet access (the local relay mode skips it).
+
+### Privacy notes
+
+In **online** mode the small connection descriptions go through public services
+(ntfy.sh for codes, the MQTT brokers for nearby discovery) and your public IP is
+visible to the STUN servers. Use the local relay if you'd rather keep everything
+on your own network. Direct connections can fail on very strict networks (some
+mobile data / corporate Wi-Fi) since no TURN server is used.
 
 ## Local relay (fully offline)
 

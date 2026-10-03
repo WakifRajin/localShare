@@ -187,6 +187,30 @@
   .gh-link{ display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:.8rem; text-decoration:none; padding:7px 12px; border-radius:99px; border:1px solid var(--line); transition:.15s; }
   .gh-link:hover{ color:var(--text); border-color:var(--line-strong); background:var(--surface-2); }
 
+  /* ---------- Nearby devices ---------- */
+  .nearby{ border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2); padding:14px; }
+  .nearby-head{ display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .nearby-head b{ display:block; font-size:.92rem; }
+  .nearby-head small{ display:block; color:var(--muted); font-size:.78rem; line-height:1.35; }
+  .radar{ position:relative; width:34px; height:34px; flex-shrink:0; border-radius:50%; background:var(--accent-soft); display:grid; place-items:center; }
+  .radar::before{ content:''; width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .radar i{ position:absolute; inset:0; border-radius:50%; border:1.5px solid var(--accent); opacity:0; animation:radar 2.4s infinite ease-out; }
+  .radar i + i{ animation-delay:1.2s; }
+  @keyframes radar{ 0%{ transform:scale(.45); opacity:.8; } 100%{ transform:scale(1.5); opacity:0; } }
+  .nearby.idle .radar i{ animation:none; }
+  .nearby-list{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .nearby-list:empty{ display:none; }
+  .nearby-row{ display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm); }
+  .nearby-row .nm{ min-width:0; flex:1; }
+  .nearby-row .nm b{ display:block; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nearby-row .nm small{ color:var(--muted); font-size:.74rem; }
+  .divider{ display:flex; align-items:center; gap:12px; color:var(--muted); font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; margin:16px 0; }
+  .divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .request-card{ max-width:380px; text-align:center; }
+  .request-card .avatar{ margin:0 auto 14px; }
+  .request-card h1{ font-size:1.25rem; }
+  .request-card .btn-row .btn{ flex:1; }
+
   /* ---------- App shell ---------- */
   #app-screen{ display:none; flex-direction:column; height:100vh; height:100dvh; }
   .topbar{
@@ -329,7 +353,7 @@
     .card{ padding:22px 18px; max-height:calc(100dvh - 24px); }
     .card h1{ font-size:1.35rem; }
     .choose-grid{ grid-template-columns:1fr; }
-    .choose-opt{ flex-direction:row; align-items:center; }
+    .choose-opt{ flex-direction:row; align-items:center; padding:14px; }
     .relay-code{ font-size:1.7rem; letter-spacing:.22em; text-indent:.22em; }
     .invite{ grid-template-columns:1fr; justify-items:center; text-align:center; gap:14px; }
     .invite-side{ width:100%; }
@@ -440,16 +464,24 @@
         <div class="logo"><svg class="i"><use href="#i-wifi"/></svg></div>
         <div><b>localShare</b><small>Local mesh workspace</small></div>
       </div>
-      <h1>Start a session</h1>
-      <p class="sub">Create a room for others to join, or connect to one that's already running.</p>
+      <h1>Connect devices</h1>
+      <p class="sub">Devices on your Wi-Fi show up below automatically — tap one to connect. For anyone else, use a code or QR.</p>
+      <div class="nearby idle" id="nearby-section">
+        <div class="nearby-head">
+          <span class="radar"><i></i><i></i></span>
+          <div><b>Nearby devices</b><small id="nearby-status">Looking for devices on your network…</small></div>
+        </div>
+        <div class="nearby-list" data-nearby-list="landing"></div>
+      </div>
+      <div class="divider"><span>or</span></div>
       <div class="choose-grid">
         <button class="choose-opt" onclick="startHost()">
           <span class="ico"><svg class="i lg"><use href="#i-radio"/></svg></span>
-          <span><b>Host a session</b><span class="d">Create a room others join</span></span>
+          <span><b>Host with a code</b><span class="d">QR code &amp; invite link</span></span>
         </button>
         <button class="choose-opt" onclick="startJoin()">
           <span class="ico"><svg class="i lg"><use href="#i-link"/></svg></span>
-          <span><b>Join a session</b><span class="d">Connect with a host's code</span></span>
+          <span><b>Join with a code</b><span class="d">Type or scan a code</span></span>
         </button>
       </div>
       <div class="mode-note"><span class="dot" id="mode-dot"></span><span id="mode-note-text">Checking connection options…</span></div>
@@ -545,6 +577,19 @@
   </div>
 </div>
 
+<!-- INCOMING CONNECTION REQUEST -->
+<div id="request-modal" class="overlay hidden" style="z-index:60" role="dialog" aria-modal="true" aria-labelledby="request-title">
+  <div class="card request-card">
+    <div id="request-avatar"></div>
+    <h1 id="request-title">Connection request</h1>
+    <p class="sub" id="request-sub"></p>
+    <div class="btn-row">
+      <button class="btn" onclick="declineRequest()">Decline</button>
+      <button class="btn primary" onclick="acceptRequest()">Accept</button>
+    </div>
+  </div>
+</div>
+
 <!-- APP SCREEN -->
 <div id="app-screen">
   <header class="topbar">
@@ -586,6 +631,10 @@
         </div>
         <h3 class="section-title">Participants</h3>
         <div id="peer-list"></div>
+        <div id="nearby-dash-wrap" style="display:none">
+          <h3 class="section-title">Nearby devices</h3>
+          <div class="nearby-list" data-nearby-list="dash"></div>
+        </div>
         <div class="invite-hint" id="invite-hint" style="display:none"><svg class="i"><use href="#i-user-plus"/></svg><span>Nobody else is here yet — use <b>Invite</b> to generate a code for the next person.</span></div>
       </section>
 
@@ -1092,7 +1141,7 @@ const signalReady = (async function detectSignal(){
   $('mode-dot').className = 'dot ' + (mode === 'manual' ? 'connecting' : 'online');
   $('mode-note-text').textContent = {
     local:  'Short codes ready — anyone on your network can join.',
-    online: 'Short codes ready — works across networks. Only connection info is exchanged via ntfy.sh; chat and files stay device-to-device.',
+    online: 'Works across networks. Only connection info passes through public relays (encrypted for nearby discovery); chat and files stay device-to-device.',
     manual: 'Can\'t reach a code service, so you\'ll pair devices by copy & paste instead.'
   }[mode];
   return mode;
@@ -1131,6 +1180,379 @@ function renderQR(text){
 })();
 
 /* =========================================================
+   NEARBY DEVICES — PairDrop-style auto-discovery, with no server of our own.
+   Devices behind the same router share a public IP. Each device learns its
+   public IPv4 from a STUN server, hashes it into a room name, and meets the
+   others on a public MQTT broker. Everything on the broker is AES-GCM
+   encrypted with a key derived from that IP, so the broker only sees noise.
+   Only presence and the WebRTC handshake travel this way — never chat or files.
+   ========================================================= */
+const BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+const te = new TextEncoder(), td = new TextDecoder();
+
+function concatBytes(...parts){
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let o = 0; for(const p of parts){ out.set(p, o); o += p.length; }
+  return out;
+}
+const hexOf = u8 => [...u8].map(b => b.toString(16).padStart(2, '0')).join('');
+async function sha256(str){ return new Uint8Array(await crypto.subtle.digest('SHA-256', te.encode(str))); }
+async function deriveRoom(ip){
+  const room = hexOf((await sha256('localshare-room-v2|' + ip)).slice(0, 16));
+  const key = await crypto.subtle.importKey('raw', await sha256('localshare-key-v2|' + ip), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return { room, key };
+}
+async function sealMsg(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, te.encode(JSON.stringify(obj))));
+  return concatBytes(iv, ct);
+}
+async function openMsg(key, bytes){
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv: bytes.slice(0, 12) }, key, bytes.slice(12));
+  return JSON.parse(td.decode(pt));
+}
+
+// Our public IPv4, as seen by a STUN server (that's all STUN is for here).
+function publicIPv4(){
+  return new Promise(resolve => {
+    let pc, done = false;
+    const finish = ip => { if(done) return; done = true; try{ pc.close(); }catch(e){} resolve(ip); };
+    try{
+      pc = new RTCPeerConnection({ iceServers: STUN });
+      pc.createDataChannel('ip');
+      pc.onicecandidate = e => {
+        if(!e.candidate){ finish(null); return; }
+        const m = / (\d{1,3}(?:\.\d{1,3}){3}) \d+ typ srflx/.exec(e.candidate.candidate);
+        if(m) finish(m[1]);
+      };
+      pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => finish(null));
+    }catch(e){ finish(null); return; }
+    setTimeout(() => finish(null), 6000);
+  });
+}
+
+// --- minimal MQTT 3.1.1 client over WebSocket (QoS 0 only: connect, subscribe, publish, will)
+function mqttStr(str){ const b = te.encode(str); return concatBytes(Uint8Array.of(b.length >> 8, b.length & 255), b); }
+function mqttPacket(first, ...parts){
+  const body = concatBytes(...parts);
+  const len = []; let n = body.length;
+  do{ let d = n % 128; n = Math.floor(n / 128); if(n > 0) d |= 128; len.push(d); }while(n > 0);
+  return concatBytes(Uint8Array.of(first), Uint8Array.from(len), body);
+}
+
+class MqttConn {
+  constructor(url, topic, willBytes, onMessage, onReady){
+    Object.assign(this, { url, topic, willBytes, onMessage, onReady, ws:null, ready:false, stopped:false, buf:new Uint8Array(0), pingT:null });
+    this.clientId = 'ls-' + uid(12);
+  }
+  async run(){
+    let delay = 2000;
+    while(!this.stopped){
+      const ok = await this._open();
+      if(this.stopped) return;
+      if(ok){ delay = 2000; await this._closed; }
+      if(this.stopped) return;
+      await new Promise(r => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 30000);
+    }
+  }
+  _open(){
+    this.buf = new Uint8Array(0); this.ready = false;
+    this._closed = new Promise(r => { this._markClosed = r; });
+    return new Promise(resolve => {
+      let ws, settled = false;
+      const settle = v => { if(!settled){ settled = true; resolve(v); } };
+      try{ ws = new WebSocket(this.url, 'mqtt'); }catch(e){ this._markClosed(); return settle(false); }
+      ws.binaryType = 'arraybuffer'; this.ws = ws;
+      const timer = setTimeout(() => { settle(false); try{ ws.close(); }catch(e){} }, 8000);
+      this._onReady = () => { clearTimeout(timer); settle(true); };
+      ws.onopen = () => ws.send(mqttPacket(0x10, mqttStr('MQTT'), Uint8Array.of(4, 0x06, 0, 45), mqttStr(this.clientId),
+        mqttStr(this.topic), concatBytes(Uint8Array.of(this.willBytes.length >> 8, this.willBytes.length & 255), this.willBytes)));
+      ws.onmessage = e => this._feed(new Uint8Array(e.data));
+      ws.onclose = () => { clearTimeout(timer); clearInterval(this.pingT); this.ready = false; settle(false); this._markClosed(); };
+      ws.onerror = () => {};
+    });
+  }
+  _feed(chunk){
+    this.buf = concatBytes(this.buf, chunk);
+    for(;;){
+      if(this.buf.length < 2) return;
+      let i = 1, mult = 1, len = 0, b;
+      do{ if(i >= this.buf.length) return; b = this.buf[i++]; len += (b & 127) * mult; mult *= 128; }while(b & 128);
+      if(this.buf.length < i + len) return;
+      const type = this.buf[0] >> 4, flags = this.buf[0] & 15;
+      const body = this.buf.slice(i, i + len);
+      this.buf = this.buf.slice(i + len);
+      this._packet(type, flags, body);
+    }
+  }
+  _packet(type, flags, body){
+    if(type === 2){ // CONNACK
+      if(body[1] !== 0){ try{ this.ws.close(); }catch(e){} return; }
+      this.ws.send(mqttPacket(0x82, Uint8Array.of(0, 1), mqttStr(this.topic), Uint8Array.of(0)));
+    } else if(type === 9){ // SUBACK
+      this.ready = true;
+      this.pingT = setInterval(() => { if(this.ws.readyState === 1) this.ws.send(Uint8Array.of(0xC0, 0)); }, 20000);
+      this._onReady(); this.onReady();
+    } else if(type === 3){ // PUBLISH
+      const tl = (body[0] << 8) | body[1];
+      const qos = (flags >> 1) & 3;
+      this.onMessage(body.slice(2 + tl + (qos ? 2 : 0)));
+    }
+  }
+  publish(bytes){
+    if(this.ready && this.ws.readyState === 1) this.ws.send(mqttPacket(0x30, mqttStr(this.topic), bytes));
+  }
+  stop(){
+    this.stopped = true; clearInterval(this.pingT);
+    try{ if(this.ws && this.ws.readyState === 1) this.ws.send(Uint8Array.of(0xE0, 0)); this.ws.close(); }catch(e){}
+  }
+}
+
+// --- nearby-devices engine
+const nearby = { on:false, key:null, topic:null, conns:[], seen:new Set(), devices:new Map(), knocks:new Map(), pending:new Map(), requests:[], state:'idle' };
+
+function deviceKind(){
+  const ua = navigator.userAgent;
+  const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows'
+           : /Mac OS X|Macintosh/.test(ua) ? 'macOS' : /CrOS/.test(ua) ? 'ChromeOS' : /Linux/.test(ua) ? 'Linux' : 'device';
+  const br = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox'
+           : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  return `${br} on ${os}`;
+}
+
+function setNearbyState(state){
+  nearby.state = state;
+  const sec = $('nearby-section');
+  sec.style.display = state === 'off' ? 'none' : '';
+  sec.classList.toggle('idle', state !== 'scanning' && state !== 'ready');
+  document.querySelector('#step-choose .divider').style.display = state === 'off' ? 'none' : '';
+  renderNearby();
+}
+
+async function startNearby(){
+  if(nearby.on) return;
+  if(signalMode !== 'online' || !(window.crypto && crypto.subtle)){ setNearbyState('off'); return; }
+  nearby.on = true;
+  setNearbyState('scanning');
+  const ip = await publicIPv4();
+  if(!nearby.on) return;
+  if(!ip){ nearby.on = false; setNearbyState('noip'); return; }
+  const { room, key } = await deriveRoom(ip);
+  if(!nearby.on) return;
+  nearby.key = key; nearby.topic = 'localshare/v2/' + room;
+  const will = await sealMsg(key, { type:'bye', from:myId, mid:uid(10), t:Date.now() });
+  nearby.conns = BROKERS.map(url => new MqttConn(url, nearby.topic, will, onNearbyBytes, () => {
+    if(nearby.state !== 'ready') setNearbyState('ready');
+    nearbyAnnounce(true);
+  }));
+  nearby.conns.forEach(c => c.run());
+  setTimeout(() => { if(nearby.on && nearby.state === 'scanning') setNearbyState('offline'); }, 12000);
+}
+
+async function stopNearby(){
+  if(!nearby.on) return;
+  try{ await nbSend({ type:'bye' }); }catch(e){}
+  nearby.on = false;
+  nearby.conns.forEach(c => c.stop());
+  nearby.conns = []; nearby.devices.clear();
+  renderNearby();
+}
+
+async function nbSend(msg){
+  if(!nearby.on || !nearby.key) return;
+  msg.from = myId; msg.t = Date.now(); msg.mid = uid(10);
+  const bytes = await sealMsg(nearby.key, msg);
+  nearby.conns.forEach(c => c.publish(bytes));
+}
+function nearbyAnnounce(reply){
+  nbSend({ type:'hello', name:myName, kind:deviceKind(), host: hasEnteredApp && isHost, reply: !!reply });
+}
+
+async function onNearbyBytes(bytes){
+  let m;
+  try{ m = await openMsg(nearby.key, bytes); }catch(e){ return; } // not ours / corrupt
+  if(!m || typeof m.from !== 'string' || m.from === myId || nearby.seen.has(m.mid)) return;
+  nearby.seen.add(m.mid);
+  if(nearby.seen.size > 600) nearby.seen = new Set([...nearby.seen].slice(-300));
+  if(m.to && m.to !== myId) return;
+
+  switch(m.type){
+    case 'hello': {
+      const prev = nearby.devices.get(m.from);
+      nearby.devices.set(m.from, { id:m.from, name:cleanName(m.name), kind:String(m.kind || '').slice(0, 40), host:!!m.host, status: prev ? prev.status : 'idle' });
+      renderNearby();
+      if(m.reply) setTimeout(() => nearbyAnnounce(false), 100 + Math.random() * 500);
+      break;
+    }
+    case 'bye':
+      nearby.devices.delete(m.from);
+      nearby.requests = nearby.requests.filter(r => r.from !== m.from);
+      renderNearby(); renderRequest();
+      break;
+    case 'knock': onKnock(m); break;
+    case 'offer': onOffer(m); break;
+    case 'answer': onAnswerMsg(m); break;
+    case 'decline': onDecline(m); break;
+  }
+}
+
+function nearbyName(id){ const d = nearby.devices.get(id); return d ? d.name : 'A device'; }
+function setDeviceStatus(id, status, ms){
+  const d = nearby.devices.get(id);
+  if(!d) return;
+  d.status = status; renderNearby();
+  if(ms) setTimeout(() => { const x = nearby.devices.get(id); if(x && x.status === status){ x.status = 'idle'; renderNearby(); } }, ms);
+}
+
+// Tap "Connect" (or "Invite") on a device.
+function nearbyConnect(id){
+  const d = nearby.devices.get(id);
+  if(!d || d.status === 'requesting') return;
+  if(hasEnteredApp && !isHost) return;           // joiners can't bring others in
+  setDeviceStatus(id, 'requesting');
+  if(hasEnteredApp && isHost) offerNearby(id, true);        // I'm hosting: invite them
+  else nbSend({ type:'knock', to:id, name:myName });        // ask them to host me
+  const t = setTimeout(() => {
+    nearby.knocks.delete(id);
+    const x = nearby.devices.get(id);
+    if(x && x.status === 'requesting'){ showToast(`${x.name} didn't respond`, 'warn'); setDeviceStatus(id, 'idle'); }
+  }, 30000);
+  nearby.knocks.set(id, t);
+}
+
+function clearKnock(id){ clearTimeout(nearby.knocks.get(id)); nearby.knocks.delete(id); }
+
+function onKnock(m){
+  if(hasEnteredApp && !isHost){ nbSend({ type:'decline', to:m.from, reason:'busy' }); return; }
+  if(nearby.knocks.has(m.from)){ // we knocked each other at once: lower id hosts
+    if(myId < m.from){ clearKnock(m.from); offerNearby(m.from, false); }
+    return;
+  }
+  queueRequest({ from:m.from, name:cleanName(m.name), kind:'knock' });
+}
+
+function onOffer(m){
+  if(hasEnteredApp){ nbSend({ type:'decline', to:m.from, reason:'busy' }); return; }
+  if(nearby.knocks.has(m.from)){ clearKnock(m.from); answerNearby(m.from, m.sdp); return; }
+  if(m.invite) queueRequest({ from:m.from, name:cleanName(m.name), kind:'invite', sdp:m.sdp });
+}
+
+async function onAnswerMsg(m){
+  const key = nearby.pending.get(m.from);
+  const p = key && peers.get(key);
+  if(!p || p.pc.signalingState !== 'have-local-offer') return;
+  nearby.pending.delete(m.from);
+  try{ await p.pc.setRemoteDescription(m.sdp); armConnectTimer(); }
+  catch(e){ showToast('Could not complete the connection: ' + e.message, 'err'); }
+}
+
+function onDecline(m){
+  clearKnock(m.from);
+  const name = nearbyName(m.from);
+  showToast(m.reason === 'busy' ? `${name} is already in a session` : `${name} declined`, 'warn');
+  setDeviceStatus(m.from, 'declined', 4000);
+}
+
+// I create the offer (I become the host) and send it to `peerId`.
+async function offerNearby(peerId, invite){
+  isHost = true;
+  const key = 'peer-' + uid(6);
+  const { pc } = makePeerConnection(key);
+  setupDataChannel(key, pc.createDataChannel('localshare-' + key));
+  nearby.pending.set(peerId, key);
+  try{
+    await pc.setLocalDescription(await pc.createOffer());
+    await waitIceGatheringComplete(pc);
+    await nbSend({ type:'offer', to:peerId, name:myName, invite:!!invite, sdp:{ type:pc.localDescription.type, sdp:pc.localDescription.sdp } });
+    showToast(`Connecting to ${nearbyName(peerId)}…`);
+  }catch(e){
+    dropPeer(key); nearby.pending.delete(peerId);
+    showToast('Could not start the connection: ' + e.message, 'err');
+    return;
+  }
+  setTimeout(() => { // never answered? clean up the half-open connection
+    const p = peers.get(key);
+    if(p && !p.everOnline && p.pc.signalingState === 'have-local-offer'){ dropPeer(key); nearby.pending.delete(peerId); }
+  }, 45000);
+}
+
+async function answerNearby(from, offer){
+  try{
+    const answer = await createAnswerFor(offer);
+    await nbSend({ type:'answer', to:from, sdp:{ type:answer.type, sdp:answer.sdp } });
+    showToast(`Connecting to ${nearbyName(from)}…`);
+    armConnectTimer();
+  }catch(e){
+    abortPending();
+    showToast('Could not connect: ' + e.message, 'err');
+  }
+}
+
+// --- incoming request dialog
+function queueRequest(r){
+  if(nearby.requests.some(x => x.from === r.from)) return;
+  nearby.requests.push(r);
+  renderRequest();
+}
+function renderRequest(){
+  const r = nearby.requests[0];
+  $('request-modal').classList.toggle('hidden', !r);
+  if(!r) return;
+  $('request-avatar').innerHTML = avatar(r.name, 64);
+  $('request-title').textContent = r.kind === 'knock' ? `${r.name} wants to connect` : `${r.name} invited you`;
+  $('request-sub').textContent = r.kind === 'knock'
+    ? 'Accept to start a session together. You\'ll be the host.'
+    : 'Accept to join their session.';
+}
+function declineRequest(){
+  const r = nearby.requests.shift();
+  if(r) nbSend({ type:'decline', to:r.from });
+  renderRequest();
+}
+async function acceptRequest(){
+  const r = nearby.requests.shift();
+  renderRequest();
+  if(!r) return;
+  if(r.kind === 'knock') offerNearby(r.from, false);
+  else answerNearby(r.from, r.sdp);
+}
+
+// --- rendering
+function renderNearby(){
+  const connected = new Set([...peers.values()].map(p => p.remoteId).filter(Boolean));
+  const list = [...nearby.devices.values()].filter(d => !connected.has(d.id));
+
+  const status = {
+    off: '', idle: '', scanning: 'Looking for devices on your network…',
+    noip: 'Couldn\'t detect your network — use a code or QR instead.',
+    offline: 'Discovery service unreachable — use a code or QR instead.',
+    ready: list.length ? `${list.length} device${list.length === 1 ? '' : 's'} nearby — tap one to connect`
+                       : `Visible as “${myName}”. Open localShare on another device on this network.`
+  }[nearby.state];
+  $('nearby-status').textContent = status;
+
+  const dashVisible = hasEnteredApp && isHost && nearby.on;
+  $('nearby-dash-wrap').style.display = dashVisible ? '' : 'none';
+
+  document.querySelectorAll('[data-nearby-list]').forEach(box => {
+    const dash = box.dataset.nearbyList === 'dash';
+    box.innerHTML = '';
+    for(const d of list){
+      if(dash && d.host) continue; // can't invite a device that's hosting its own session
+      const row = document.createElement('div');
+      row.className = 'nearby-row';
+      const label = d.status === 'requesting' ? 'Waiting…' : d.status === 'declined' ? 'Declined' : (dash ? 'Invite' : (d.host ? 'Join' : 'Connect'));
+      row.innerHTML = avatar(d.name, 38) +
+        `<div class="nm"><b>${esc(d.name)}</b><small>${esc(d.kind)}${d.host ? ' · in a session' : ''}</small></div>` +
+        `<button class="btn sm ${d.status === 'idle' ? 'primary' : ''}" ${d.status !== 'idle' ? 'disabled' : ''}>${label}</button>`;
+      row.querySelector('button').addEventListener('click', () => nearbyConnect(d.id));
+      box.appendChild(row);
+    }
+  });
+}
+
+/* =========================================================
    NAME GATE
    ========================================================= */
 $('name-input').value = lsGet('localshare_display_name') || '';
@@ -1145,6 +1567,7 @@ function confirmName(){
   $('wizard-modal').classList.remove('hidden');
   if(inviteFromLink){ const code = inviteFromLink; inviteFromLink = null; startJoin(code); return; }
   showWizardStep('step-choose');
+  signalReady.then(() => startNearby());
 }
 
 /* =========================================================
@@ -1299,6 +1722,7 @@ function setupDataChannel(key, dc){
     sendToKey(key, { type:'presence', data:{ id: myId, name: myName, host: isHost } });
     if(isHost) sendToKey(key, { type:'sync', data:{ text: sharedText, roster: rosterList() } });
     enterAppIfNeeded(wasWizard);
+    if(!isHost) stopNearby(); else if(nearby.on) nearbyAnnounce(false);
     showToast(entry.name ? `${entry.name} connected` : 'Peer connected', 'ok');
   };
   dc.onclose = ()=> markPeerOffline(key, entry);
@@ -1728,6 +2152,7 @@ function peerRow(dotClass, name, role, state, extra){
   return row;
 }
 function renderPeerList(){
+  if(typeof renderNearby === 'function') renderNearby();
   const list = $('peer-list');
   list.innerHTML = '';
   list.appendChild(peerRow('online', myName + ' (you)', isHost ? 'host' : 'participant', 'you'));
@@ -2024,6 +2449,7 @@ function completeIncomingTransfer(id){
    CLEANUP
    ========================================================= */
 window.addEventListener('pagehide', ()=>{
+  try{ if(nearby.on) nearby.conns.forEach(c => c.stop()); }catch(e){}
   for(const [,p] of peers){ try{ if(p.dc) p.dc.close(); if(p.pc) p.pc.close(); }catch(e){} }
 });
 </script>
