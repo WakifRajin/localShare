@@ -626,7 +626,7 @@
    ========================================================= */
 const $ = id => document.getElementById(id);
 const BASE_TITLE = document.title;
-const RELAY_BASE = ''; // same-origin: when server.js serves this page, relative /api/* just works
+const RELAY_BASE = '.'; // relative to this page, so it also works when served from a sub-path
 const config = { iceServers: [] }; // empty = local-network-only ICE candidates, no external STUN/TURN
 
 let myId = uid(8);
@@ -711,7 +711,8 @@ function showToast(text, kind){
    RELAY DETECTION (short codes need server.js; GitHub Pages / file:// don't have it)
    ========================================================= */
 const relayReady = (async function detectRelay(){
-  if(location.protocol === 'file:'){ relayAvailable = false; return false; }
+  // No relay can exist on file:// or static hosting such as GitHub Pages — don't even probe.
+  if(location.protocol === 'file:' || /\.github\.io$/i.test(location.hostname)){ relayAvailable = false; return false; }
   try{
     const ctl = new AbortController();
     const t = setTimeout(()=>ctl.abort(), 2500);
