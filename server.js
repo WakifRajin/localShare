@@ -26,6 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const { createTerminalHttp } = require('./terminal/http');
 
 const PORT = Number(process.env.PORT) || 8787;
 const APP_DIR = path.join(__dirname, 'docs');
@@ -37,6 +38,11 @@ const MAX_ROOMS = 500;
 const MAX_BODY_BYTES = 200_000;     // an SDP blob is a few KB; this is a generous ceiling
 const LOOKUP_LIMIT = 40;            // failed code lookups allowed per IP per window
 const LOOKUP_WINDOW_MS = 60 * 1000;
+
+// The network-diagnostics terminal (real commands such as ping / ip / iperf3). It is only reachable from this
+// machine itself (see terminal/http.js) and can be switched off with --no-terminal.
+const TERMINAL_ENABLED = !process.argv.includes('--no-terminal') && process.env.LOCALSHARE_TERMINAL !== '0';
+const termHttp = TERMINAL_ENABLED ? createTerminalHttp({ port: PORT }) : null;
 
 const rooms = new Map();    // code -> { offer, answer, createdAt }
 const failures = new Map(); // ip -> { count, resetAt }
@@ -143,6 +149,13 @@ const server = http.createServer(async (req, res) => {
       return res.end(req.method === 'HEAD' ? undefined : html);
     }
 
+    // --- Diagnostics terminal (loopback-only; handled in terminal/http.js) ---
+    if (p.startsWith('/term/')) {
+      if (!termHttp) return sendJSON(res, 404, { error: 'The terminal is disabled on this server (started with --no-terminal).' });
+      await termHttp.handle(req, res, url);
+      return;
+    }
+
     // --- Signaling API ---
     if (p === '/api/ping' && req.method === 'GET') {
       return sendJSON(res, 200, { app: 'localshare', ok: true, urls: lanAddresses().map(a => `http://${a}:${PORT}`) });
@@ -217,6 +230,9 @@ server.listen(PORT, () => {
     console.log('\nNo local network address detected — others may need the machine\'s LAN IP manually.');
   }
   console.log('\nThis server only helps devices find each other. Chat, files, and shared text never pass through it.');
+  console.log(TERMINAL_ENABLED
+    ? `Network terminal: ON — open http://localhost:${PORT} on THIS machine and use the Terminal tab (or run: node terminal/cli.js).`
+    : 'Network terminal: off (--no-terminal).');
   console.log('Press Ctrl+C to stop.');
 });
 

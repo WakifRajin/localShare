@@ -32,7 +32,6 @@
     --warn:#fbbf24; --danger:#f87171; --danger-soft:rgba(248,113,113,.12);
     --scrim:rgba(5,7,10,.62); --shadow:0 1px 2px rgba(0,0,0,.4), 0 18px 48px rgba(0,0,0,.45);
     --glow-a:rgba(52,211,153,.10); --glow-b:rgba(99,102,241,.08);
-    --term-bg:#07090c; --term-text:#6ee7b7;
   }
   html[data-theme="light"]{
     --bg:#f4f6f8; --surface:#ffffff; --surface-2:#f3f5f8; --surface-3:#e8ecf1;
@@ -42,7 +41,6 @@
     --warn:#a16207; --danger:#dc2626; --danger-soft:rgba(220,38,38,.08);
     --scrim:rgba(226,232,240,.7); --shadow:0 1px 2px rgba(16,24,40,.06), 0 18px 48px rgba(16,24,40,.12);
     --glow-a:rgba(13,148,103,.10); --glow-b:rgba(99,102,241,.07);
-    --term-bg:#0b1210; --term-text:#6ee7b7;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ height:100%; }
@@ -225,6 +223,9 @@
   .status-pill{ display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 13px; border-radius:99px; border:1px solid var(--line); background:var(--surface-2); font-size:.8rem; color:var(--muted); font-weight:500; margin-right:6px; white-space:nowrap; }
   .session-banner{ display:none; align-items:center; justify-content:space-between; gap:12px; background:var(--danger-soft); border-bottom:1px solid var(--danger); color:var(--danger); padding:10px 20px; font-size:.86rem; font-weight:500; }
   .session-banner.show{ display:flex; }
+  .session-banner.warn{ color:var(--warn); border-bottom-color:var(--warn); background:rgba(251,191,36,.10); }
+  .msg-row.pending .msg{ opacity:.55; }
+  .msg-row.pending .msg-meta::after{ content:' · sending…'; }
   .workspace{ display:flex; flex:1; min-height:0; }
   .sidebar{ width:232px; flex-shrink:0; padding:16px 12px; display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--line); background:color-mix(in srgb, var(--surface) 55%, transparent); }
   .nav-btn{
@@ -317,17 +318,22 @@
   a.dl{ display:inline-flex; align-items:center; gap:7px; background:var(--accent); color:var(--accent-ink); height:34px; padding:0 14px; border-radius:var(--r-sm); font-weight:600; font-size:.82rem; text-decoration:none; white-space:nowrap; }
   a.dl:hover{ background:var(--accent-strong); }
 
-  /* Terminal */
-  .terminal-window{ flex:1; min-height:0; display:flex; flex-direction:column; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--line); background:var(--term-bg); }
-  .term-bar{ display:flex; align-items:center; gap:7px; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.07); }
-  .term-bar i{ width:11px; height:11px; border-radius:50%; background:#2b323c; display:block; }
-  .term-bar i:nth-child(1){ background:#ef6b6b; } .term-bar i:nth-child(2){ background:#e8bf4a; } .term-bar i:nth-child(3){ background:#4cc38a; }
-  .term-bar span{ margin-left:8px; font-family:var(--mono); font-size:.72rem; color:#7d8794; }
-  .term-body{ flex:1; min-height:0; display:flex; flex-direction:column; padding:16px; font-family:var(--mono); }
-  .term-output{ flex:1; overflow-y:auto; color:var(--term-text); margin-bottom:10px; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.84rem; line-height:1.65; }
-  .term-input-line{ display:flex; align-items:center; gap:8px; color:var(--term-text); }
-  .term-input-line span{ opacity:.65; font-size:.84rem; }
-  .term-input-line input{ flex:1; background:transparent; border:none; color:var(--term-text); font-family:var(--mono); outline:none; font-size:16px; min-width:0; }
+  /* Terminal — near-black, monospace, no chrome. Stays dark in the light theme too (like any real terminal). */
+  #view-terminal{ max-width:none; padding:0; }
+  .tty{ display:flex; flex-direction:column; height:100%; background:#090b0e; color:#d3d9e2; font-family:var(--mono); font-size:.82rem; line-height:1.55; border-top:1px solid #151a21; }
+  .tty-scroll{ flex:1; min-height:0; overflow:auto; padding:14px 18px 10px; cursor:text; }
+  .tty-out{ white-space:pre; tab-size:8; width:max-content; min-width:100%; }   /* keep columns aligned; wide tables scroll sideways */
+  .tty-line{ display:flex; align-items:baseline; white-space:pre; }
+  .tty-line .tty-prompt{ flex-shrink:0; }
+  .tty-input{ flex:1; min-width:0; background:transparent; border:none; outline:none; color:#e8edf4; font:inherit; caret-color:#4ade80; padding:0; }
+  .tty-status{ display:flex; align-items:center; gap:18px; padding:6px 16px; border-top:1px solid #151a21; background:#0b0e12; font-size:.68rem; color:#6b7686; white-space:nowrap; overflow:hidden; }
+  .tty-status .agent::before{ content:'●'; margin-right:6px; color:#6b7280; }
+  .tty-status .agent.ok::before{ color:#4ade80; } .tty-status .agent.warn::before{ color:#fbbf24; }
+  .tty-status .run{ color:#fbbf24; overflow:hidden; text-overflow:ellipsis; }
+  .tty-status .keys{ margin-left:auto; }
+  .a30{ color:#4b5563; } .a31{ color:#f87171; } .a32{ color:#4ade80; } .a33{ color:#fbbf24; } .a34{ color:#60a5fa; } .a35{ color:#c084fc; } .a36{ color:#22d3ee; } .a37{ color:#e5e7eb; }
+  .a90{ color:#6b7280; } .a91{ color:#fca5a5; } .a92{ color:#86efac; } .a93{ color:#fde68a; } .a94{ color:#93c5fd; } .a95{ color:#d8b4fe; } .a96{ color:#67e8f9; } .a97{ color:#f9fafb; }
+  .ab{ font-weight:700; } .ad{ opacity:.7; } .au{ text-decoration:underline; }
 
   /* Toasts */
   #toast-stack{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:100; width:min(420px, calc(100vw - 24px)); pointer-events:none; }
@@ -608,7 +614,7 @@
   </header>
   <div class="session-banner" id="session-banner" role="alert">
     <span id="session-banner-text">The host closed the session.</span>
-    <button class="btn sm" onclick="location.reload()">Start over</button>
+    <button class="btn sm" id="session-banner-btn" onclick="location.reload()">Start over</button>
   </div>
   <div class="workspace">
     <nav class="sidebar" aria-label="Sections">
@@ -669,15 +675,15 @@
       </section>
 
       <section id="view-terminal" class="view">
-        <div class="view-head"><h2>Terminal</h2><p>A shared shell — everyone sees the output. Try <code>/help</code>.</p></div>
-        <div class="terminal-window" onclick="document.getElementById('term-input').focus()">
-          <div class="term-bar"><i></i><i></i><i></i><span>localshare — shared session</span></div>
-          <div class="term-body">
-            <div class="term-output" id="term-output">localShare collaborative shell v2.0 — type /help for commands.</div>
-            <div class="term-input-line">
-              <span id="term-prompt">you~$</span>
-              <input type="text" id="term-input" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal command">
-            </div>
+        <div class="tty" id="tty">
+          <div class="tty-scroll" id="tty-scroll">
+            <div class="tty-out" id="term-output" role="log" aria-label="Terminal output"></div>
+            <div class="tty-line"><span class="tty-prompt" id="term-prompt"></span><input class="tty-input" id="term-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Terminal command"></div>
+          </div>
+          <div class="tty-status" id="tty-status">
+            <span class="agent" id="tty-agent">agent: checking…</span>
+            <span class="run" id="tty-run"></span>
+            <span class="keys">Ctrl+C cancel · Ctrl+L clear · Tab complete · ↑↓ history</span>
           </div>
         </div>
       </section>
@@ -1309,8 +1315,43 @@ class MqttConn {
   }
 }
 
+// --- an encrypted pub/sub room spread over several brokers (used for nearby discovery AND session resume)
+class Channel {
+  constructor(topic, key, onMsg, onReady){ Object.assign(this, { topic, key, onMsg, onReady, conns:[], seen:new Set(), on:false }); }
+  async open(){
+    if(this.on) return;
+    this.on = true;
+    const will = await sealMsg(this.key, { type:'bye', from:myId, mid:uid(10), t:Date.now() });
+    if(!this.on) return;
+    this.conns = BROKERS.map(url => new MqttConn(url, this.topic, will, b => this._bytes(b), () => this.onReady()));
+    this.conns.forEach(c => c.run());
+  }
+  async send(msg){
+    if(!this.on) return;
+    msg.from = myId; msg.t = Date.now(); msg.mid = uid(10);
+    const bytes = await sealMsg(this.key, msg);
+    this.conns.forEach(c => c.publish(bytes));
+  }
+  async _bytes(bytes){
+    let m;
+    try{ m = await openMsg(this.key, bytes); }catch(e){ return; } // not ours / corrupt
+    if(!m || typeof m.from !== 'string' || m.from === myId || this.seen.has(m.mid)) return;
+    this.seen.add(m.mid);
+    if(this.seen.size > 600) this.seen = new Set([...this.seen].slice(-300));
+    if(m.to && m.to !== myId) return;
+    this.onMsg(m);
+  }
+  async close(sayBye){
+    if(!this.on) return;
+    if(sayBye){ try{ await this.send({ type:'bye' }); }catch(e){} }
+    this.on = false;
+    this.conns.forEach(c => c.stop());
+    this.conns = [];
+  }
+}
+
 // --- nearby-devices engine
-const nearby = { on:false, key:null, topic:null, conns:[], seen:new Set(), devices:new Map(), knocks:new Map(), pending:new Map(), requests:[], state:'idle' };
+const nearby = { on:false, ch:null, devices:new Map(), knocks:new Map(), pending:new Map(), requests:[], state:'idle' };
 
 function deviceKind(){
   const ua = navigator.userAgent;
@@ -1340,43 +1381,28 @@ async function startNearby(){
   if(!ip){ nearby.on = false; setNearbyState('noip'); return; }
   const { room, key } = await deriveRoom(ip);
   if(!nearby.on) return;
-  nearby.key = key; nearby.topic = 'localshare/v2/' + room;
-  const will = await sealMsg(key, { type:'bye', from:myId, mid:uid(10), t:Date.now() });
-  nearby.conns = BROKERS.map(url => new MqttConn(url, nearby.topic, will, onNearbyBytes, () => {
+  nearby.ch = new Channel('localshare/v2/' + room, key, onNearbyMsg, () => {
     if(nearby.state !== 'ready') setNearbyState('ready');
     nearbyAnnounce(true);
-  }));
-  nearby.conns.forEach(c => c.run());
+  });
+  nearby.ch.open();
   setTimeout(() => { if(nearby.on && nearby.state === 'scanning') setNearbyState('offline'); }, 12000);
 }
 
 async function stopNearby(){
   if(!nearby.on) return;
-  try{ await nbSend({ type:'bye' }); }catch(e){}
-  nearby.on = false;
-  nearby.conns.forEach(c => c.stop());
-  nearby.conns = []; nearby.devices.clear();
+  const ch = nearby.ch;
+  nearby.on = false; nearby.ch = null; nearby.devices.clear();
   renderNearby();
+  if(ch) await ch.close(true);
 }
 
-async function nbSend(msg){
-  if(!nearby.on || !nearby.key) return;
-  msg.from = myId; msg.t = Date.now(); msg.mid = uid(10);
-  const bytes = await sealMsg(nearby.key, msg);
-  nearby.conns.forEach(c => c.publish(bytes));
-}
+function nbSend(msg){ return nearby.ch ? nearby.ch.send(msg) : undefined; }
 function nearbyAnnounce(reply){
   nbSend({ type:'hello', name:myName, kind:deviceKind(), host: hasEnteredApp && isHost, reply: !!reply });
 }
 
-async function onNearbyBytes(bytes){
-  let m;
-  try{ m = await openMsg(nearby.key, bytes); }catch(e){ return; } // not ours / corrupt
-  if(!m || typeof m.from !== 'string' || m.from === myId || nearby.seen.has(m.mid)) return;
-  nearby.seen.add(m.mid);
-  if(nearby.seen.size > 600) nearby.seen = new Set([...nearby.seen].slice(-300));
-  if(m.to && m.to !== myId) return;
-
+function onNearbyMsg(m){
   switch(m.type){
     case 'hello': {
       const prev = nearby.devices.get(m.from);
@@ -1454,9 +1480,13 @@ function onDecline(m){
   setDeviceStatus(m.from, 'declined', 4000);
 }
 
-// I create the offer (I become the host) and send it to `peerId`.
-async function offerNearby(peerId, invite){
+// I create the offer (I become the host) and send it to `peerId` over `ch` (nearby room by default).
+async function offerNearby(peerId, invite, ch){
+  const out = ch || nearby.ch;
+  if(!out) return;
   isHost = true;
+  const stale = nearby.pending.get(peerId);
+  if(stale) dropPeer(stale);
   const key = 'peer-' + uid(6);
   const { pc } = makePeerConnection(key);
   setupDataChannel(key, pc.createDataChannel('localshare-' + key));
@@ -1464,8 +1494,8 @@ async function offerNearby(peerId, invite){
   try{
     await pc.setLocalDescription(await pc.createOffer());
     await waitIceGatheringComplete(pc);
-    await nbSend({ type:'offer', to:peerId, name:myName, invite:!!invite, sdp:{ type:pc.localDescription.type, sdp:pc.localDescription.sdp } });
-    showToast(`Connecting to ${nearbyName(peerId)}…`);
+    await out.send({ type:'offer', to:peerId, name:myName, invite:!!invite, sdp:{ type:pc.localDescription.type, sdp:pc.localDescription.sdp } });
+    if(!ch) showToast(`Connecting to ${nearbyName(peerId)}…`);
   }catch(e){
     dropPeer(key); nearby.pending.delete(peerId);
     showToast('Could not start the connection: ' + e.message, 'err');
@@ -1473,21 +1503,116 @@ async function offerNearby(peerId, invite){
   }
   setTimeout(() => { // never answered? clean up the half-open connection
     const p = peers.get(key);
-    if(p && !p.everOnline && p.pc.signalingState === 'have-local-offer'){ dropPeer(key); nearby.pending.delete(peerId); }
+    if(p && !p.everOnline && p.pc.signalingState === 'have-local-offer'){ dropPeer(key); if(nearby.pending.get(peerId) === key) nearby.pending.delete(peerId); }
   }, 45000);
 }
 
-async function answerNearby(from, offer){
+async function answerNearby(from, offer, ch){
+  const out = ch || nearby.ch;
   try{
     const answer = await createAnswerFor(offer);
-    await nbSend({ type:'answer', to:from, sdp:{ type:answer.type, sdp:answer.sdp } });
-    showToast(`Connecting to ${nearbyName(from)}…`);
+    await out.send({ type:'answer', to:from, sdp:{ type:answer.type, sdp:answer.sdp } });
+    if(!ch) showToast(`Connecting to ${nearbyName(from)}…`);
     armConnectTimer();
   }catch(e){
     abortPending();
     showToast('Could not connect: ' + e.message, 'err');
   }
 }
+
+// --- session resume: if the link to the host drops (phone slept, Wi-Fi hiccup), a joiner knocks on a
+//     private, encrypted room named after the session and the host sends a fresh offer. Works across networks.
+const session = { sid:null, ch:null, resuming:false, tries:0, timer:null, knockAt:new Map(), answeringAt:0 };
+function canResume(){ return signalMode === 'online' && !!(window.crypto && crypto.subtle); }
+
+async function sessionChannel(sid){
+  const room = hexOf((await sha256('localshare-sess-room-v1|' + sid)).slice(0, 16));
+  const key = await crypto.subtle.importKey('raw', await sha256('localshare-sess-key-v1|' + sid), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return new Channel('localshare/v2/s/' + room, key, onSessionMsg, () => { if(session.resuming) sendRknock(); });
+}
+// Host: create the session id (sent to every joiner in `sync`) and listen for returning devices.
+function ensureSession(){
+  if(session.sid) return;
+  session.sid = uid(20);
+  if(canResume()) sessionChannel(session.sid).then(ch => { session.ch = ch; ch.open(); });
+}
+function sendRknock(){ if(session.ch && session.ch.on) session.ch.send({ type:'rknock', name:myName }); }
+
+function onSessionMsg(m){
+  if(m.type === 'rknock'){
+    if(!isHost) return;
+    if(Date.now() - (session.knockAt.get(m.from) || 0) < 15000) return; // an offer is already on its way
+    session.knockAt.set(m.from, Date.now());
+    for(const [k, p] of peers) if(p.remoteId === m.from) dropPeer(k);   // the stale half-dead link
+    renderPeerList(); updateDashboardCounts();
+    offerNearby(m.from, true, session.ch);
+  } else if(m.type === 'offer'){
+    if(isHost || !session.resuming) return;
+    if(Date.now() - session.answeringAt < 15000) return;
+    session.answeringAt = Date.now();
+    answerNearby(m.from, m.sdp, session.ch);
+  } else if(m.type === 'answer'){
+    onAnswerMsg(m);
+  }
+}
+
+function startResume(){
+  if(isHost) return false;
+  if(session.resuming) return true;
+  if(!session.sid || !canResume()) return false;
+  session.resuming = true; session.tries = 0; session.answeringAt = 0;
+  showBanner('Connection lost — trying to reconnect…', 'warn', false);
+  sessionChannel(session.sid).then(ch => {
+    if(!session.resuming){ return; }
+    session.ch = ch; ch.open();
+  });
+  session.timer = setInterval(() => {
+    if(!session.resuming) return;
+    if(++session.tries > 14){ failResume(); return; } // ~100 s, then give up
+    sendRknock();
+  }, 7000);
+  return true;
+}
+function endResume(ok){
+  clearInterval(session.timer);
+  session.resuming = false;
+  if(session.ch){ session.ch.close(); session.ch = null; }
+  if(ok) hideBanner();
+}
+function failResume(){
+  endResume(false);
+  showBanner('Couldn\'t reach the host — the session has ended.', 'err', true);
+}
+
+function showBanner(text, kind, withButton){
+  const b = $('session-banner');
+  $('session-banner-text').textContent = text;
+  b.classList.remove('warn');
+  if(kind === 'warn') b.classList.add('warn');
+  $('session-banner-btn').style.display = withButton ? '' : 'none';
+  b.classList.add('show');
+}
+function hideBanner(){ $('session-banner').classList.remove('show'); }
+
+// Phones: keep the screen awake during a session (a sleeping phone is the #1 cause of drops).
+let wakeLock = null;
+async function holdWake(){
+  try{
+    if(!hasEnteredApp || wakeLock || !('wakeLock' in navigator) || document.hidden) return;
+    if(!window.matchMedia('(pointer:coarse)').matches) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  }catch(e){ wakeLock = null; }
+}
+// Back from sleep / background: if the host link silently died, don't wait for the browser to notice.
+function checkLink(){
+  holdWake();
+  if(!hasEnteredApp || isHost) return;
+  const p = peers.get('host');
+  if(p && p.status !== 'offline' && (!p.dc || p.dc.readyState !== 'open')) markPeerOffline('host', p);
+}
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkLink(); });
+window.addEventListener('online', checkLink);
 
 // --- incoming request dialog
 function queueRequest(r){
@@ -1641,19 +1766,37 @@ function decodeCode(raw){
   return d;
 }
 
+const HIGH_WATER = 1_000_000;     // stop feeding a channel above this many buffered bytes
+const RELAY_PAUSE = 8_000_000;    // host asks senders to pause when any recipient's backlog passes this…
+const RELAY_RESUME = 2_000_000;   // …and lets them continue once it drains below this
+let hostPaused = false;           // the host asked us to slow down
+
 function makePeerConnection(key){
   dropPeer(key); // never leave an orphaned connection under the same key
   const pc = new RTCPeerConnection(config);
-  const entry = { pc, dc:null, name:null, remoteId:null, status:'connecting', everOnline:false };
+  const entry = { pc, dc:null, name:null, remoteId:null, status:'connecting', everOnline:false,
+                  q:[], qBytes:0, drainT:null, unstableT:null, pausedByUs:false };
   peers.set(key, entry);
   pc.onconnectionstatechange = ()=>{
     if(peers.get(key) !== entry) return;
     const st = pc.connectionState;
     if(st === 'connected'){
-      if(entry.dc && entry.dc.readyState === 'open' && entry.status === 'unstable') entry.status = 'online';
+      clearTimeout(entry.unstableT);
+      if(entry.dc && entry.dc.readyState === 'open' && entry.status === 'unstable'){
+        entry.status = 'online';
+        if(!isHost && key === 'host' && !session.resuming) hideBanner();
+      }
     } else if(st === 'disconnected'){
-      // Often transient (Wi-Fi blip) — don't give up yet.
-      if(entry.status === 'online') entry.status = 'unstable';
+      // Usually a short blip (Wi-Fi roam, brief sleep). Give it time to recover on its own,
+      // and if it doesn't, treat the link as lost so the reconnect logic can take over.
+      if(entry.status === 'online'){
+        entry.status = 'unstable';
+        if(!isHost && key === 'host') showBanner('Connection unstable — trying to recover…', 'warn', false);
+        clearTimeout(entry.unstableT);
+        entry.unstableT = setTimeout(()=>{
+          if(peers.get(key) === entry && pc.connectionState !== 'connected') markPeerOffline(key, entry);
+        }, 15000);
+      }
     } else if(st === 'failed' || st === 'closed'){
       markPeerOffline(key, entry);
       return;
@@ -1667,6 +1810,7 @@ function dropPeer(key){
   const p = peers.get(key);
   if(!p) return;
   peers.delete(key); // delete first so close events are ignored
+  clearTimeout(p.unstableT); clearTimeout(p.drainT);
   try{ if(p.dc) p.dc.close(); }catch(e){}
   try{ if(p.pc) p.pc.close(); }catch(e){}
 }
@@ -1674,6 +1818,7 @@ function dropPeer(key){
 function markPeerOffline(key, entry){
   if(peers.get(key) !== entry || entry.status === 'offline') return;
   entry.status = 'offline';
+  clearTimeout(entry.unstableT);
 
   if(!entry.everOnline){
     // The handshake never completed.
@@ -1697,8 +1842,10 @@ function markPeerOffline(key, entry){
     if(entry.remoteId) broadcast({ type:'leave', data:{ id: entry.remoteId, name } }, key);
   } else if(key === 'host'){
     remoteRoster.clear();
-    $('session-banner-text').textContent = 'The connection to the host was lost — the session has ended.';
-    $('session-banner').classList.add('show');
+    for(const [id] of incomingTransfers) updateFileProgress(id, null, 'failed', 'Interrupted');
+    incomingTransfers.clear();
+    // Try to get back in on our own before giving up on the session.
+    if(!startResume()) showBanner('The connection to the host was lost — the session has ended.', 'err', true);
   }
   renderPeerList(); updateDashboardCounts();
   setTimeout(()=>{
@@ -1711,6 +1858,8 @@ function setupDataChannel(key, dc){
   if(!entry) return;
   entry.dc = dc;
   dc.binaryType = 'arraybuffer';
+  dc.bufferedAmountLowThreshold = 256 * 1024;
+  dc.onbufferedamountlow = ()=> drain(entry);
   dc.onopen = ()=>{
     if(peers.get(key) !== entry) return;
     entry.status = 'online';
@@ -1719,29 +1868,73 @@ function setupDataChannel(key, dc){
     if(pendingWizardKey === key) pendingWizardKey = null;
     const wasWizard = (wizardKey === key);
     if(wasWizard) wizardKey = null;
+    const resumed = !isHost && session.resuming;
     sendToKey(key, { type:'presence', data:{ id: myId, name: myName, host: isHost } });
-    if(isHost) sendToKey(key, { type:'sync', data:{ text: sharedText, roster: rosterList() } });
+    if(isHost){
+      ensureSession();
+      sendToKey(key, { type:'sync', data:{ text: sharedText, rev: textRev, roster: rosterList(), chat: chatLog.slice(-200), sid: session.sid } });
+    } else {
+      resendPending(); // anything the old link swallowed
+    }
     enterAppIfNeeded(wasWizard);
-    if(!isHost) stopNearby(); else if(nearby.on) nearbyAnnounce(false);
-    showToast(entry.name ? `${entry.name} connected` : 'Peer connected', 'ok');
+    if(!isHost){
+      stopNearby();
+      if(resumed){ endResume(true); showToast('Reconnected', 'ok'); } else hideBanner();
+    } else if(nearby.on) nearbyAnnounce(false);
+    if(!resumed) showToast(entry.name ? `${entry.name} connected` : 'Peer connected', 'ok');
   };
   dc.onclose = ()=> markPeerOffline(key, entry);
   dc.onmessage = e => { try{ handleIncoming(key, e.data); }catch(err){ console.warn('bad message', err); } };
 }
 
-function safeSend(dc, data){
-  try{ dc.send(data); return true; }catch(e){ return false; }
+/* ---- sending: every channel has its own queue so nothing is silently dropped and a slow
+        recipient can't overflow the browser's send buffer (which makes it close the channel) ---- */
+function dataSize(d){ return typeof d === 'string' ? d.length : d.byteLength; }
+function sendRaw(entry, data){
+  const dc = entry.dc;
+  if(!dc || dc.readyState !== 'open') return false;
+  if(!entry.q.length && dc.bufferedAmount < HIGH_WATER){
+    try{ dc.send(data); return true; }catch(e){ /* fall through to the queue */ }
+  }
+  entry.q.push(data); entry.qBytes += dataSize(data);
+  scheduleDrain(entry, 0);
+  return true;
 }
+function scheduleDrain(entry, ms){ if(!entry.drainT) entry.drainT = setTimeout(()=>{ entry.drainT = null; drain(entry); }, ms); }
+function drain(entry){
+  const dc = entry.dc;
+  if(!dc || dc.readyState !== 'open') return;
+  while(entry.q.length && dc.bufferedAmount < HIGH_WATER){
+    const d = entry.q[0];
+    try{ dc.send(d); }catch(e){ scheduleDrain(entry, 100); return; }
+    entry.q.shift(); entry.qBytes -= dataSize(d);
+  }
+  if(entry.q.length) scheduleDrain(entry, 50); // safety net if a "buffer low" event is missed
+  checkFlow();
+}
+// Host: if any recipient is falling behind, tell every sender to pause until it catches up.
+function checkFlow(){
+  if(!isHost) return;
+  let worst = 0;
+  for(const [,p] of peers) worst = Math.max(worst, p.qBytes);
+  const want = worst > RELAY_PAUSE ? true : worst < RELAY_RESUME ? false : null;
+  if(want === null) return;
+  for(const [,p] of peers){
+    if(p.pausedByUs === want) continue;
+    p.pausedByUs = want;
+    try{ if(p.dc && p.dc.readyState === 'open') p.dc.send(JSON.stringify({ type:'fc', data:{ pause: want } })); }catch(e){}
+  }
+}
+
 function sendToKey(key, msg){
   const p = peers.get(key);
-  if(p && p.dc && p.dc.readyState === 'open') return safeSend(p.dc, JSON.stringify(msg));
-  return false;
+  return !!(p && sendRaw(p, JSON.stringify(msg)));
 }
 function broadcastRaw(data, exceptKey){
   let sent = false;
   for(const [key, p] of peers){
     if(key === exceptKey) continue;
-    if(p.dc && p.dc.readyState === 'open' && safeSend(p.dc, data)) sent = true;
+    if(sendRaw(p, data)) sent = true;
   }
   return sent;
 }
@@ -1975,10 +2168,11 @@ function enterAppIfNeeded(closeIfOpen){
     $('invite-btn').style.display = isHost ? 'inline-flex' : 'none';
     $('sidebar-foot').innerHTML = avatar(myName, 36) + `<div><b>${esc(myName)}</b><small>${isHost ? 'Hosting' : 'Connected'}</small></div>`;
     $('dash-greeting').textContent = 'Hi, ' + myName;
-    $('term-prompt').textContent = myName.toLowerCase().replace(/\s+/g, '') + '~$';
+    ttyUpdatePrompt();
     startTime = Date.now();
     timerHandle = setInterval(updateTimer, 1000);
     resetWizardFields();
+    holdWake();
   } else if(closeIfOpen){
     closeWizard(); // only the wizard step that produced this connection — not an invite opened since
     resetWizardFields();
@@ -1995,12 +2189,12 @@ function leaveSession(){
 /* =========================================================
    INCOMING MESSAGE HANDLING (host relays between joiners)
    ========================================================= */
-const RELAYED_TYPES = new Set(['presence', 'chat', 'text', 'term', 'file-start', 'file-end']);
-const HOST_ONLY_TYPES = new Set(['sync', 'leave']);
+const RELAYED_TYPES = new Set(['presence', 'chat', 'file-start', 'file-end']);
+const HOST_ONLY_TYPES = new Set(['sync', 'leave', 'text-state', 'ack', 'fc']);
 
 function handleIncoming(fromKey, data){
   if(typeof data !== 'string'){          // binary = file chunk
-    if(isHost) broadcastRaw(data, fromKey);
+    if(isHost){ broadcastRaw(data, fromKey); checkFlow(); }
     processChunk(data);
     return;
   }
@@ -2008,12 +2202,23 @@ function handleIncoming(fromKey, data){
   try{ msg = JSON.parse(data); }catch(e){ return; }
   if(!msg || typeof msg.type !== 'string' || typeof msg.data !== 'object' || msg.data === null) return;
 
+  if(msg.type === 'text'){               // a joiner's document edit — only the host merges these
+    if(!isHost) return;
+    const p = peers.get(fromKey);
+    hostReceiveText(msg.data, (p && p.remoteId) || fromKey, fromKey);
+    return;
+  }
   if(HOST_ONLY_TYPES.has(msg.type)){
     if(isHost || fromKey !== 'host') return; // only the host may send these
   } else if(!RELAYED_TYPES.has(msg.type)){
     return;
   }
-  msgsRecv++; updateDashboardCounts();
+  // A chat message resent after a reconnect: re-confirm it, but don't deliver it twice.
+  if(msg.type === 'chat' && msg.data.mid && seenChat.has(msg.data.mid)){
+    if(isHost) sendToKey(fromKey, { type:'ack', data:{ mids:[msg.data.mid] } });
+    return;
+  }
+  if(msg.type !== 'fc' && msg.type !== 'ack'){ msgsRecv++; updateDashboardCounts(); }
 
   if(isHost && RELAYED_TYPES.has(msg.type)){
     broadcast({ ...msg, relayed:true }, fromKey);
@@ -2037,11 +2242,18 @@ function processMessage(fromKey, msg){
       break;
     }
     case 'sync':
+      if(typeof d.sid === 'string') session.sid = d.sid;
       sharedText = typeof d.text === 'string' ? d.text : '';
-      setSharedTextUI(sharedText);
+      if(inflight){ appliedText = sharedText; appliedRev = Number(d.rev) || 0; } // our edit is still on its way
+      else rebaseUI(sharedText, appliedText, Number(d.rev) || 0, null);
       (Array.isArray(d.roster) ? d.roster : []).forEach(r=>{
         if(r && r.id && r.id !== myId) remoteRoster.set(r.id, { name: cleanName(r.name), host: !!r.host });
       });
+      for(const m of (Array.isArray(d.chat) ? d.chat : [])){ // catch up on anything we missed
+        if(!m || typeof m.text !== 'string' || !m.mid || seenChat.has(m.mid)) continue;
+        seenChat.add(m.mid);
+        appendChatMessage(cleanName(m.name), m.text.slice(0, 5000), m.id === myId, m.ts, m.id);
+      }
       renderPeerList(); updateDashboardCounts();
       break;
     case 'leave': {
@@ -2051,18 +2263,27 @@ function processMessage(fromKey, msg){
       renderPeerList(); updateDashboardCounts();
       break;
     }
-    case 'chat':
+    case 'chat': {
       if(typeof d.text !== 'string') return;
-      appendChatMessage(cleanName(d.name), d.text.slice(0, 5000), false, d.ts, d.id);
+      const mid = typeof d.mid === 'string' ? d.mid : null;
+      if(mid){ if(seenChat.has(mid)) return; seenChat.add(mid); }
+      const text = d.text.slice(0, 5000);
+      if(isHost){
+        if(mid) logChat({ id:d.id, name:cleanName(d.name), text, ts:Number(d.ts) || Date.now(), mid });
+        if(mid && !msg.relayed) sendToKey(fromKey, { type:'ack', data:{ mids:[mid] } });
+      }
+      appendChatMessage(cleanName(d.name), text, false, d.ts, d.id);
       break;
-    case 'text':
-      if(typeof d.text !== 'string') return;
-      sharedText = d.text;
-      setSharedTextUI(sharedText, d.by);
+    }
+    case 'ack':
+      for(const mid of (Array.isArray(d.mids) ? d.mids : [])){
+        outbox.delete(mid);
+        const row = pendingRows.get(mid);
+        if(row){ row.classList.remove('pending'); pendingRows.delete(mid); }
+      }
       break;
-    case 'term':
-      appendTerminalLine(`${cleanName(d.name)}~$ ${String(d.cmd).slice(0, 500)}\n${String(d.res).slice(0, 2000)}`);
-      break;
+    case 'text-state': receiveState(d); break;
+    case 'fc': hostPaused = !!d.pause; break;
     case 'file-start': {
       const total = Number(d.totalChunks), size = Number(d.size);
       if(typeof d.transferId !== 'string' || d.transferId.length !== 10 || !(total >= 0 && total <= 5_000_000) || !(size >= 0)) return;
@@ -2088,10 +2309,9 @@ function sendPayload(msg){
   return ok;
 }
 function sendBinary(buf){
-  return isHost ? broadcastRaw(buf) : (()=>{
-    const p = peers.get('host');
-    return !!(p && p.dc && p.dc.readyState === 'open' && safeSend(p.dc, buf));
-  })();
+  if(isHost) return broadcastRaw(buf);
+  const p = peers.get('host');
+  return !!(p && sendRaw(p, buf));
 }
 
 /* =========================================================
@@ -2106,6 +2326,7 @@ function switchView(viewId){
   });
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   $('view-' + viewId).classList.add('active');
+  if(viewId === 'terminal') ttyStart();
   if(viewId === 'chat'){ clearUnread(); const box = $('chat-box'); box.scrollTop = box.scrollHeight; }
   const focusMap = { chat:'chat-input', terminal:'term-input', text:'shared-textarea' };
   if(focusMap[viewId] && window.matchMedia('(hover:hover)').matches) setTimeout(()=> $(focusMap[viewId]).focus(), 30);
@@ -2187,17 +2408,27 @@ function disconnectPeer(key){
 /* =========================================================
    CHAT MODULE
    ========================================================= */
+const chatLog = [];          // host: history replayed to late joiners and reconnecting devices
+const seenChat = new Set();  // message ids already shown (dedupes resends)
+const outbox = new Map();    // joiner: messages not yet acknowledged by the host
+const pendingRows = new Map();
+function logChat(m){ chatLog.push(m); if(chatLog.length > 300) chatLog.shift(); }
+// After (re)connecting, resend anything the old link may have swallowed.
+function resendPending(){
+  for(const msg of outbox.values()) sendToKey('host', msg);
+  if(inflight) sendToKey('host', { type:'text', data:{ text: inflight.text, base: appliedRev, seq: inflight.seq, by: myName } });
+}
 function sendChat(){
   const input = $('chat-input');
   const text = input.value.trim();
   if(!text) return;
-  const ts = Date.now();
-  if(!sendPayload({ type:'chat', data:{ id: myId, name: myName, text, ts } })){
-    showToast('Not delivered — nobody else is connected', 'warn');
-    return;
-  }
-  appendChatMessage(myName, text, true, ts, myId);
+  const ts = Date.now(), mid = uid(12);
+  const msg = { type:'chat', data:{ id: myId, name: myName, text, ts, mid } };
+  seenChat.add(mid);
+  const row = appendChatMessage(myName, text, true, ts, myId);
   input.value = '';
+  if(isHost){ logChat(msg.data); sendPayload(msg); }
+  else { outbox.set(mid, msg); pendingRows.set(mid, row); row.classList.add('pending'); sendPayload(msg); }
 }
 $('chat-input').addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.isComposing) sendChat(); });
 
@@ -2221,6 +2452,7 @@ function appendChatMessage(name, text, isMe, ts, senderId){
   box.appendChild(row);
   if(isMe || nearBottom) box.scrollTop = box.scrollHeight;
   if(!isMe && (currentView !== 'chat' || document.hidden)){ unreadChat++; refreshUnread(); }
+  return row;
 }
 function appendSystemLine(text){
   const box = $('chat-box');
@@ -2243,28 +2475,99 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && curre
 
 /* =========================================================
    SHARED TEXT MODULE
+   The host is the single source of truth, numbering every change ("revision").
+   A joiner sends its edit as "this text, based on revision N"; the host turns that into a
+   patch and applies it to the *current* text, so simultaneous edits merge instead of the last
+   writer wiping out the others. One edit is in flight per device at a time.
    ========================================================= */
 const sharedTA = $('shared-textarea');
 let sendTextDebounce = null;
+let textRev = 0; const textHist = new Map([[0, '']]); const lastSeq = new Map(); // host side
+let appliedRev = 0, appliedText = '', inflight = null, textSeq = 0;               // everyone
+
+// The single changed region between two strings (common prefix / suffix trimmed off).
+function diffRegion(a, b){
+  if(a === b) return null;
+  const max = Math.min(a.length, b.length);
+  let p = 0; while(p < max && a.charCodeAt(p) === b.charCodeAt(p)) p++;
+  let q = 0; while(q < max - p && a.charCodeAt(a.length - 1 - q) === b.charCodeAt(b.length - 1 - q)) q++;
+  return { pos: p, del: a.length - p - q, ins: b.slice(p, b.length - q) };
+}
+// Replay a patch made against baseText onto text (which may have moved on since).
+function applyPatch(text, patch, baseText){
+  if(!patch) return text;
+  let pos = patch.pos;
+  if(text !== baseText){
+    const m = Math.min(text.length, baseText.length);
+    let cp = 0; while(cp < m && text.charCodeAt(cp) === baseText.charCodeAt(cp)) cp++;
+    if(pos > cp) pos += text.length - baseText.length; // someone edited earlier in the document
+  }
+  pos = Math.max(0, Math.min(text.length, pos));
+  return text.slice(0, pos) + patch.ins + text.slice(pos + Math.min(patch.del, text.length - pos));
+}
+
 sharedTA.addEventListener('input', ()=>{
-  localEditing = true;
-  clearTimeout(localEditTimer);
-  localEditTimer = setTimeout(()=> localEditing = false, 900);
   sharedText = sharedTA.value;
   $('text-meta').textContent = `· ${sharedText.length} chars`;
-  clearTimeout(sendTextDebounce);
-  sendTextDebounce = setTimeout(()=> sendPayload({ type:'text', data:{ text: sharedText, by: myName } }), 150);
+  scheduleTextSend();
 });
-function setSharedTextUI(text, by){
-  if(by) $('text-meta').textContent = `· last edit by ${cleanName(by)} · ${text.length} chars`;
-  else $('text-meta').textContent = text ? `· ${text.length} chars` : '';
+function scheduleTextSend(){ clearTimeout(sendTextDebounce); sendTextDebounce = setTimeout(flushText, 150); }
+function flushText(){
+  if(inflight) return;                       // the ack will trigger the next one
+  const local = sharedTA.value;
+  if(local === appliedText) return;
+  if(isHost){
+    hostCommit(local, myName, myId, 0);
+    appliedText = local; appliedRev = textRev;
+  } else {
+    const seq = ++textSeq;
+    inflight = { seq, text: local };
+    sendToKey('host', { type:'text', data:{ text: local, base: appliedRev, seq, by: myName } });
+    msgsSent++;
+  }
+}
+
+function hostCommit(text, by, fromId, seq){
+  textRev++; sharedText = text;
+  textHist.set(textRev, text); textHist.delete(textRev - 200);
+  broadcast({ type:'text-state', data:{ text, rev: textRev, by, from: fromId, seq } });
+}
+function hostReceiveText(d, fromId, fromKey){
+  if(typeof d.text !== 'string' || d.text.length > 2_000_000) return;
+  const seq = Number(d.seq) || 0;
+  if(seq && seq <= (lastSeq.get(fromId) || 0)){ // resent after a reconnect and already merged: just re-confirm
+    sendToKey(fromKey, { type:'text-state', data:{ text: sharedText, rev: textRev, by: d.by, from: fromId, seq } });
+    return;
+  }
+  const baseRev = Number(d.base), base = textHist.get(baseRev);
+  const next = (base === undefined || baseRev === textRev) ? d.text : applyPatch(sharedText, diffRegion(base, d.text), base);
+  if(seq) lastSeq.set(fromId, seq);
+  hostCommit(next, cleanName(d.by), fromId, seq);
+  rebaseUI(next, appliedText, textRev, d.by);  // the host's own unsent typing stays on top
+}
+function receiveState(d){
+  if(typeof d.text !== 'string') return;
+  sharedText = d.text;
+  if(inflight){
+    if(d.from === myId && d.seq === inflight.seq){ const sent = inflight.text; inflight = null; rebaseUI(d.text, sent, d.rev, d.by); }
+    return; // someone else's state while ours is in flight — our ack will carry it
+  }
+  rebaseUI(d.text, appliedText, d.rev, d.by);
+}
+// Show newText, keeping whatever this device has typed since baseText.
+function rebaseUI(newText, baseText, rev, by){
+  const pending = diffRegion(baseText, sharedTA.value);
+  const merged = pending ? applyPatch(newText, pending, baseText) : newText;
+  appliedText = newText; appliedRev = rev;
+  setTextUI(merged);
+  $('text-meta').textContent = (by ? `· last edit by ${cleanName(by)} · ` : '· ') + `${merged.length} chars`;
+  if(pending) scheduleTextSend();
+}
+function setTextUI(text){
   if(sharedTA.value === text) return;
-  if(document.activeElement === sharedTA && localEditing) return; // don't clobber active local typing
   const old = sharedTA.value, s = sharedTA.selectionStart, e = sharedTA.selectionEnd;
   sharedTA.value = text;
-  // keep the caret where it was relative to the text after the first difference
-  let pre = 0;
-  while(pre < old.length && pre < text.length && old[pre] === text[pre]) pre++;
+  let pre = 0; while(pre < old.length && pre < text.length && old.charCodeAt(pre) === text.charCodeAt(pre)) pre++;
   const delta = text.length - old.length;
   const adj = pos => Math.max(0, Math.min(text.length, pos <= pre ? pos : pos + delta));
   try{ sharedTA.setSelectionRange(adj(s), adj(e)); }catch(err){}
@@ -2272,48 +2575,276 @@ function setSharedTextUI(text, by){
 function copySharedText(){ if(!sharedTA.value){ showToast('Nothing to copy yet', 'warn'); return; } copyText(sharedTA.value); }
 
 /* =========================================================
-   TERMINAL MODULE
+   NETTERM — network diagnostics terminal
+   Commands run on the machine hosting localShare (node server.js), through a loopback-only,
+   token-protected API; this page is just the front end. Output is streamed as it is produced.
+   Without that local agent (e.g. on the hosted site) only the built-in commands work, and
+   everything else says so plainly instead of pretending.
    ========================================================= */
-const termHistory = [];
-let termHistIdx = 0;
-function sendTerminal(){
-  const input = $('term-input');
-  const cmd = input.value.trim();
-  if(!cmd) return;
-  termHistory.push(cmd); termHistIdx = termHistory.length;
-  let res = '';
-  if(cmd === '/help') res = 'Commands: /help, /ping, /peers, /whoami, /time, /clear   (↑/↓ for history)';
-  else if(cmd === '/ping') res = 'pong — data channel is alive';
-  else if(cmd === '/whoami') res = `${myName} (${isHost ? 'host' : 'participant'}, id ${myId})`;
-  else if(cmd === '/peers'){
-    const names = [myName + ' (you)'];
-    for(const [,p] of peers) if(p.name && p.status !== 'offline') names.push(p.name);
-    indirectParticipants().forEach(([, r]) => names.push(r.name));
-    res = `In session: ${names.length} — ${names.join(', ')}`;
-  }
-  else if(cmd === '/time') res = new Date().toString();
-  else if(cmd === '/clear'){ $('term-output').textContent = ''; input.value = ''; return; }
-  else res = `command not found: ${cmd}`;
+/*HELP:BEGIN*/
+const TTY_HELP = {"index":"\u001b[1m\u001b[37mNETWORK COMMANDS\u001b[0m\u001b[0m\n\nnet interfaces                Show network interfaces\nnet routes                    Show routing table\nnet neighbors                 Show ARP/neighbor table\nnet connections               Show active connections\nnet ports                     Show listening ports\nnet dns                       Show DNS configuration\nnet stats                     Protocol statistics (TCP retransmits, UDP errors)\nroute \u003cdestination>           Which route/source address reaches a destination\n\nping \u003chost>                   Test connectivity\ntrace \u003chost>                  Trace network path\nresolve \u003cdomain>              Perform DNS lookup\ntcp \u003chost> \u003cport>             Test a TCP connection\nudp \u003chost> \u003cport>             Probe a UDP port\nhttp \u003curl>                    HTTP timing: DNS, connect, TLS, TTFB\nmtu test \u003chost>               Find the path MTU\nethernet \u003cinterface>          Ethernet link: speed, duplex, negotiation\n\nscan --local                  Local interfaces and devices on the LAN\nscan \u003ctarget>                 Reachability of a host, or a ping sweep of a CIDR\nscan --ports \u003ctarget>         TCP connect scan of common ports\n\nbandwidth server|client|udp   iperf3 throughput tests\nmonitor bandwidth [if]        Live RX/TX from interface counters\ncapture \u003cinterface>           Packet capture (tcpdump)\nsecurity scan|ports|services  Authorized auditing (nmap)\n\nstatus                        Privileges, tools and logging state\nlog start|stop|status         Structured diagnostic log\nhistory, !!, !N, alias        Command history and aliases\nclear, version, exit\n\nType:\n\u001b[36mhelp bandwidth\u001b[0m\nfor bandwidth testing commands.\n\nAny command accepts --help, --json, --verbose, --quiet and --yes.\n","net":"\u001b[1m\u001b[37mNET COMMANDS\u001b[0m\u001b[0m\n\nnet interfaces [name]         Interfaces: state, addresses, MAC, MTU, link speed, RX/TX counters\nnet routes [--ipv6]           Routing table (destination, gateway, interface, source)\nroute \u003cdestination>           Route and source address used to reach one destination\nnet neighbors                 ARP/neighbor table: IP, MAC, interface, state\nnet connections               All sockets  (--tcp --udp --listen --established)\nnet ports                     Listening/bound sockets with owning process (--tcp --udp)\nnet dns                       Resolvers and search domains in use\nnet stats                     IP/TCP/UDP/ICMP counters (Linux)\n\nBack-ends: `ip -j` and `ss` on Linux, PowerShell on Windows. Unavailable data is shown as N/A, never guessed.\n","scan":"\u001b[1m\u001b[37mDISCOVERY COMMANDS\u001b[0m\u001b[0m\n\nscan --local                  Your interfaces plus devices seen in the neighbor table (passive)\nscan --local --active         ARP-scan the subnet (arp-scan, root; asks first)\nscan \u003chost>                   Is it up? RTT, hostname, MAC when on the same subnet\nscan \u003ccidr>                   Ping sweep, e.g. 192.168.1.0/24 (asks first)\nscan --ports \u003chost>           TCP connect scan of ~40 common ports\nscan --ports \u003chost> --range 1-1024Choose the ports (asks above 100 ports)\n\nNothing aggressive runs without a confirmation. For service/version detection use `help security`.\n","bandwidth":"\u001b[1m\u001b[37mBANDWIDTH COMMANDS\u001b[0m\u001b[0m\n\nbandwidth server              Start an iperf3 server on this host (Ctrl+C to stop)\nbandwidth client \u003chost>       TCP throughput to a server\n  --duration \u003cs> --streams \u003cn>Test length / parallel streams\n  --reverse                   Measure the other direction\nbandwidth udp \u003chost> --rate 100MUDP throughput, jitter and loss\nmonitor bandwidth [iface]     Live RX/TX rates from system counters (--interval \u003cs>)\n\nNeeds iperf3 on both ends. LINK SPEED is the negotiated capacity; THROUGHPUT is what was measured.\n","capture":"\u001b[1m\u001b[37mCAPTURE\u001b[0m\u001b[0m\n\ncapture \u003cinterface>           Live packet summaries (needs tcpdump and privileges)\n  --host \u003cip>  --port \u003cn>     Filter by host / port\n  --tcp  --udp                Filter by protocol\n  --count \u003cn>                 Stop after n packets\n  --output \u003cfile.pcap>        Save a pcap for Wireshark\n\nA notice and confirmation always precede a capture. Ctrl+C stops it cleanly.\n","security":"\u001b[1m\u001b[37mSECURITY AUDITING (authorized targets only)\u001b[0m\u001b[0m\n\nsecurity scan \u003ctarget>        Host discovery + top 100 TCP ports (nmap)\nsecurity ports \u003ctarget> [--range ...|--all]Port scan of a chosen range\nsecurity services \u003ctarget>    Service/version detection (-sV)\n  --scripts                   nmap's default scripts (-sC); more intrusive\n  --os                        OS detection (-O); needs root\n\nTargets must be private addresses unless you add --authorized. Every scan asks for confirmation first.\nThis tool does discovery and identification only — no exploitation, credential attacks or denial-of-service.\n","diagnostics":"\u001b[1m\u001b[37mDIAGNOSTICS\u001b[0m\u001b[0m\n\nping \u003chost> [-c n] [--interval s] [--size b]RTT, loss, min/avg/max/stddev\ntrace \u003chost>                  Hop-by-hop path (traceroute / tracepath / tracert)\nresolve \u003cdomain> [--type MX] [--server ip]A, AAAA, CNAME, MX, TXT, NS\ntcp \u003chost> \u003cport>             SUCCESS / REFUSED / TIMEOUT (timeout is not \"closed\")\nudp \u003chost> \u003cport> [--data text]RESPONSE / REFUSED / NO RESPONSE\nhttp \u003curl> [--insecure]       DNS, connect, TLS, TTFB, total, size\nmtu test \u003chost>               Largest unfragmented payload\nethernet \u003cinterface>          Link state, speed, duplex, advertised modes\n"};
+const TTY_COMMANDS = ["bandwidth","bandwidth client","bandwidth server","bandwidth udp","capture","ethernet","http","log","log start","log status","log stop","monitor","monitor bandwidth","mtu","mtu test","net","net connections","net dns","net interfaces","net neighbors","net ports","net routes","net stats","ping","resolve","route","scan","security","security ports","security scan","security services","status","tcp","trace","udp","version"];
+/*HELP:END*/
 
-  appendTerminalLine(`${myName}~$ ${cmd}\n${res}`);
-  sendPayload({ type:'term', data:{ name: myName, cmd, res } });
-  input.value = '';
-}
-$('term-input').addEventListener('keydown', e=>{
-  if(e.isComposing) return;
-  if(e.key === 'Enter') sendTerminal();
-  else if(e.key === 'ArrowUp' && termHistory.length){
-    e.preventDefault(); termHistIdx = Math.max(0, termHistIdx - 1); e.target.value = termHistory[termHistIdx];
-  } else if(e.key === 'ArrowDown' && termHistory.length){
-    e.preventDefault(); termHistIdx = Math.min(termHistory.length, termHistIdx + 1); e.target.value = termHistory[termHistIdx] || '';
+const tty = { agent: null, info: null, token: null, running: null, awaiting: null, started: false, history: [], histIdx: 0, aliases: {}, ansi: { cls: [] }, frameEl: null, reason: '' };
+const TTY_BUILTINS = ['help', 'clear', 'history', 'alias', 'unalias', 'exit', 'quit'];
+const TTY_SECRET_RE = /(pass(word|wd)?|secret|token|api[-_]?key|authorization|bearer|cookie|psk)|\/\/[^\s/@:]+:[^\s/@]+@/i;
+const ttyOut = () => $('term-output');
+
+try{ tty.history = JSON.parse(lsGet('netterm_history') || '[]').slice(-200); tty.aliases = JSON.parse(lsGet('netterm_aliases') || '{}'); }catch(e){ tty.history = []; tty.aliases = {}; }
+tty.histIdx = tty.history.length;
+
+/* ---- ANSI -> DOM ------------------------------------------------------ */
+const SGR = { 1: 'ab', 2: 'ad', 4: 'au' };
+function ttyApplySgr(codes){
+  const st = tty.ansi;
+  for(const c of codes){
+    if(c === 0){ st.cls = []; continue; }
+    if(c === 22){ st.cls = st.cls.filter(x => x !== 'ab' && x !== 'ad'); continue; }
+    if(c === 39){ st.cls = st.cls.filter(x => !/^a(3\d|9\d)$/.test(x)); continue; }
+    if(SGR[c]){ if(!st.cls.includes(SGR[c])) st.cls.push(SGR[c]); continue; }
+    if((c >= 30 && c <= 37) || (c >= 90 && c <= 97)){ st.cls = st.cls.filter(x => !/^a(3\d|9\d)$/.test(x)); st.cls.push('a' + c); }
   }
-});
-function appendTerminalLine(text){
-  const out = $('term-output');
-  out.appendChild(document.createTextNode('\n' + text));
-  while(out.childNodes.length > 400) out.firstChild.remove();
-  out.scrollTop = out.scrollHeight;
 }
+function ttyRender(text, into){
+  // eslint-disable-next-line no-control-regex
+  const parts = String(text).split(/\x1b\[([0-9;]*)m/);
+  for(let i = 0; i < parts.length; i++){
+    if(i % 2 === 1){ ttyApplySgr(parts[i] === '' ? [0] : parts[i].split(';').map(Number)); continue; }
+    if(!parts[i]) continue;
+    if(tty.ansi.cls.length){ const sp = document.createElement('span'); sp.className = tty.ansi.cls.join(' '); sp.textContent = parts[i]; into.appendChild(sp); }
+    else into.appendChild(document.createTextNode(parts[i]));
+  }
+}
+function ttyFreezeFrame(){
+  if(tty.frameEl){ tty.frameEl = null; ttyOut().appendChild(document.createTextNode('\n')); }
+}
+function ttyWrite(text){
+  const out = ttyOut(), sc = $('tty-scroll');
+  const stick = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 60;
+  ttyFreezeFrame();
+  ttyRender(text, out);
+  while(out.childNodes.length > 6000) out.firstChild.remove();
+  if(stick) sc.scrollTop = sc.scrollHeight;
+}
+function ttyFrame(text){            // a live block that replaces itself (monitor, sweeps, progress)
+  const out = ttyOut(), sc = $('tty-scroll');
+  const stick = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 60;
+  if(!tty.frameEl){ tty.frameEl = document.createElement('span'); out.appendChild(tty.frameEl); }
+  tty.frameEl.textContent = '';
+  const saved = tty.ansi.cls.slice();
+  ttyRender(text, tty.frameEl);
+  tty.ansi.cls = saved;
+  if(stick) sc.scrollTop = sc.scrollHeight;
+}
+const E = '\x1b[';
+const c = (code, s) => `${E}${code}m${s}${E}0m`;
+
+/* ---- prompt / status ---------------------------------------------------- */
+function ttyUser(){ return ((tty.info && tty.info.user) || (myName || 'user')).toLowerCase().replace(/[^a-z0-9._-]+/g, '') || 'user'; }
+function ttyHost(){ return (tty.info && tty.info.hostname) || 'localhost'; }
+function ttyPromptText(){ return `${c(32, ttyUser() + '@' + ttyHost())}${c(90, ':')}${c(34, '~')}${c(90, '$')} `; }
+function ttyUpdatePrompt(){
+  const p = $('term-prompt');
+  p.textContent = '';
+  const saved = tty.ansi.cls; tty.ansi.cls = [];
+  ttyRender(tty.awaiting ? `${c(33, tty.awaiting.prompt + ' [y/N]')} ` : ttyPromptText(), p);
+  tty.ansi.cls = saved;
+}
+function ttyUpdateStatus(){
+  const a = $('tty-agent');
+  a.className = 'agent ' + (tty.agent === 'ok' ? 'ok' : tty.agent === 'restricted' ? 'warn' : '');
+  a.textContent = tty.agent === 'ok' ? `agent connected · ${ttyHost()}${tty.info ? ' · ' + tty.info.platform : ''}`
+    : tty.agent === 'restricted' ? 'agent restricted to the host machine' : 'agent not connected';
+  $('tty-run').textContent = tty.running ? `running: ${tty.running.line}` : '';
+}
+
+/* ---- agent connection ---------------------------------------------------- */
+async function ttyConnect(){
+  tty.agent = null; tty.token = null; tty.reason = '';
+  try{
+    const r = await fetch('./term/info', { cache: 'no-store' });
+    if(r.status === 403){ tty.agent = 'restricted'; try{ tty.reason = (await r.json()).error || ''; }catch(e){} }
+    else if(r.ok){ const j = await r.json(); if(j && j.ok){ tty.info = j; tty.token = j.token; tty.agent = 'ok'; } }
+  }catch(e){ /* no server (hosted site, file://) */ }
+  ttyUpdateStatus(); ttyUpdatePrompt();
+  return tty.agent === 'ok';
+}
+
+function ttyCapabilities(){
+  const caps = (tty.info && tty.info.capabilities) || [];
+  const lines = [c(1, 'SYSTEM CAPABILITIES'), ''];
+  for(const k of caps){
+    lines.push(!k.supported ? `${c(90, '–')} ${c(90, k.name.padEnd(10))} ${c(90, 'not applicable on ' + tty.info.platform)}` : `${k.available ? c(32, '✓') : c(31, '✗')} ${k.name}`);
+  }
+  const missing = caps.filter(k => k.supported && !k.available);
+  if(missing.length){
+    lines.push('', c(33, `Optional dependency missing: ${missing.map(m => m.name).join(', ')}`));
+    for(const m of missing) lines.push(c(2, `  ${m.name.padEnd(10)} ${m.hint && /linux/i.test(tty.info.platform) ? m.hint + '  — ' : ''}${m.purpose}`));
+  }
+  return lines.join('\n');
+}
+
+async function ttyStart(){
+  if(tty.started) return;
+  tty.started = true;
+  const w = 64, title = ' NETTERM', sub = '  •  NETWORK DIAGNOSTICS';
+  ttyWrite(`${c(90, '╭' + '─'.repeat(w - 2) + '╮')}\n${c(90, '│')}${c(1, title)}${c(90, sub)}${' '.repeat(Math.max(0, w - 2 - title.length - sub.length))}${c(90, '│')}\n${c(90, '╰' + '─'.repeat(w - 2) + '╯')}\n\n`);
+  ttyUpdatePrompt(); ttyUpdateStatus();
+  const ok = await ttyConnect();
+  if(ok) ttyWrite(`${ttyCapabilities()}\n\nType ${c(36, 'help')} for commands.\n\n`);
+  else if(tty.agent === 'restricted') ttyWrite(`${c(33, 'The terminal agent only talks to the machine that runs server.js.')}\n${tty.reason ? tty.reason + '\n' : ''}\nOpen ${c(36, 'http://localhost:<port>')} on that machine, or run ${c(36, 'node terminal/cli.js')} there.\nBuilt-in commands (${TTY_BUILTINS.slice(0, 5).join(', ')}) work here.\n\n`);
+  else ttyWrite(`${c(33, 'Agent not connected.')} Real network commands run on the machine hosting localShare.\n\n  ${c(36, 'node server.js')}            then open ${c(36, 'http://localhost:8787')} → Terminal\n  ${c(36, 'node terminal/cli.js')}    the same terminal in a shell (works over SSH)\n\nOn the hosted site only the built-ins work: ${TTY_BUILTINS.slice(0, 5).join(', ')}.\nNothing is simulated — without the agent, network commands report ${c(33, 'UNAVAILABLE')}.\n\nType ${c(36, 'help')} for the command reference.\n\n`);
+  ttyUpdatePrompt();
+}
+
+/* ---- running commands ------------------------------------------------------ */
+function ttyUnavailable(){
+  ttyWrite(`${c(31, 'ERROR:')} UNAVAILABLE — this command needs the local agent.\n\n` + (tty.agent === 'restricted'
+    ? 'The agent only answers on the machine running server.js.\n'
+    : `Start it on the machine you want to diagnose:\n  ${c(36, 'node server.js')}  →  open http://localhost:8787 on that machine\nor use the shell version:  ${c(36, 'node terminal/cli.js')}\n`));
+}
+
+async function ttyRun(line){
+  if(tty.agent !== 'ok'){ await ttyConnect(); if(tty.agent !== 'ok'){ ttyUnavailable(); ttyWrite('\n'); return; } }
+  const ctrl = new AbortController();
+  const run = { id: null, ctrl, line };
+  tty.running = run; tty.ansi.cls = [];
+  ttyUpdateStatus();
+  try{
+    const res = await fetch('./term/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Term-Token': tty.token },
+      body: JSON.stringify({ line }), signal: ctrl.signal,
+    });
+    if(res.status === 401){ await ttyConnect(); ttyWrite(`${c(31, 'ERROR:')} the agent restarted — reconnected, please run the command again.\n`); return; }
+    if(!res.ok){ let m = ''; try{ m = (await res.json()).error; }catch(e){} ttyWrite(`${c(31, 'ERROR:')} ${m || 'agent refused the request (' + res.status + ')'}\n`); return; }
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    for(;;){
+      const { value, done } = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while((i = buf.indexOf('\n')) >= 0){
+        const raw = buf.slice(0, i); buf = buf.slice(i + 1);
+        if(!raw) continue;
+        let ev; try{ ev = JSON.parse(raw); }catch(e){ continue; }
+        if(ev.type === 'start') run.id = ev.id;
+        else if(ev.type === 'out') ttyWrite(ev.data);
+        else if(ev.type === 'frame') ttyFrame(ev.data);
+        else if(ev.type === 'confirm'){ ttyFreezeFrame(); tty.awaiting = { id: run.id, prompt: ev.prompt }; ttyUpdatePrompt(); }
+      }
+    }
+  }catch(e){
+    if(e.name !== 'AbortError'){ tty.agent = null; ttyUpdateStatus(); ttyWrite(`\n${c(31, 'ERROR:')} lost the connection to the agent (${e.message}).\n`); }
+  }finally{
+    tty.running = null; tty.awaiting = null; ttyFreezeFrame(); tty.ansi.cls = [];
+    ttyUpdatePrompt(); ttyUpdateStatus();
+    ttyWrite('\n');
+    $('term-input').focus({ preventScroll: true });
+  }
+}
+
+function ttyPost(path, body){
+  return fetch('./term/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Term-Token': tty.token }, body: JSON.stringify(body) }).catch(() => {});
+}
+function ttyCancel(){
+  const r = tty.running;
+  if(!r) return;
+  if(r.id) ttyPost('cancel', { id: r.id }); else r.ctrl.abort();
+}
+
+/* ---- built-ins ---------------------------------------------------------- */
+function ttyBuiltin(first, rest, line){
+  switch(first){
+    case 'clear': ttyOut().textContent = ''; tty.frameEl = null; return true;
+    case 'help': {
+      const topic = (rest[0] || 'index').toLowerCase();
+      const alias = { ping:'diagnostics', trace:'diagnostics', resolve:'diagnostics', tcp:'diagnostics', udp:'diagnostics', http:'diagnostics', mtu:'diagnostics', ethernet:'diagnostics', diag:'diagnostics', monitor:'bandwidth', route:'net', discovery:'scan' };
+      const key = TTY_HELP[topic] ? topic : alias[topic];
+      ttyWrite((key ? TTY_HELP[key] : `${c(33, `No help topic '${rest[0]}'.`)} Topics: ${Object.keys(TTY_HELP).filter(k => k !== 'index').join(', ')}\n\n${TTY_HELP.index || ''}`) + '\n');
+      return true;
+    }
+    case 'history':
+      ttyWrite(tty.history.map((h, i) => `${String(i + 1).padStart(4)}  ${h}`).join('\n') + (tty.history.length ? '\n' : c(90, '(empty)\n')));
+      return true;
+    case 'alias': {
+      const m = /^alias\s+(\S+?)=(.+)$/.exec(line);
+      if(m){ tty.aliases[m[1]] = m[2].replace(/^["']|["']$/g, ''); lsSet('netterm_aliases', JSON.stringify(tty.aliases)); }
+      else if(rest.length === 0) ttyWrite(Object.entries(tty.aliases).map(([k, v]) => `alias ${k}="${v}"`).join('\n') + (Object.keys(tty.aliases).length ? '\n' : c(90, '(no aliases)\n')));
+      else ttyWrite(`${c(31, 'ERROR:')} usage: alias name="command"\n`);
+      return true;
+    }
+    case 'unalias': delete tty.aliases[rest[0]]; lsSet('netterm_aliases', JSON.stringify(tty.aliases)); return true;
+    case 'exit': case 'quit': ttyWrite(c(90, 'logout\n\n')); switchView('dashboard'); return true;
+  }
+  return false;
+}
+
+function ttyWords(line){ const m = line.match(/"[^"]*"|'[^']*'|\S+/g) || []; return m; }
+
+async function ttySubmit(raw){
+  const input = $('term-input');
+  const typed = raw;
+  ttyWrite(`${tty.awaiting ? c(33, tty.awaiting.prompt + ' [y/N] ') : ttyPromptText()}${typed}\n`);
+  input.value = '';
+
+  if(tty.awaiting){                                        // answering a confirmation prompt
+    const a = tty.awaiting; tty.awaiting = null; ttyUpdatePrompt();
+    await ttyPost('answer', { id: a.id, ok: /^y(es)?$/i.test(typed.trim()) });
+    return;
+  }
+  let line = typed.trim();
+  if(!line) return;
+  if(tty.running){ ttyWrite(`${c(33, 'A command is still running.')} Press Ctrl+C to cancel it.\n`); return; }
+
+  if(line === '!!' || /^!\d+$/.test(line)){                // history expansion
+    const entry = line === '!!' ? tty.history[tty.history.length - 1] : tty.history[Number(line.slice(1)) - 1];
+    if(!entry){ ttyWrite(`${c(31, 'ERROR:')} no such history entry\n`); return; }
+    ttyWrite(c(90, entry) + '\n'); line = entry;
+  }
+  const words = ttyWords(line), first = words[0];
+  if(tty.aliases[first]) line = (tty.aliases[first] + ' ' + words.slice(1).join(' ')).trim();
+
+  if(!TTY_SECRET_RE.test(line)){                           // never persist anything that looks like a credential
+    if(tty.history[tty.history.length - 1] !== line){ tty.history.push(line); tty.history = tty.history.slice(-200); lsSet('netterm_history', JSON.stringify(tty.history)); }
+  }
+  tty.histIdx = tty.history.length;
+
+  const w2 = ttyWords(line);
+  if(ttyBuiltin(w2[0], w2.slice(1), line)) return;
+  if(w2[0] === 'version' && tty.agent !== 'ok'){ ttyWrite(`NETTERM web terminal\nagent: ${c(33, 'not connected')}\n`); return; }
+  await ttyRun(line);
+}
+
+function ttyComplete(){
+  const input = $('term-input'), v = input.value;
+  const names = [...new Set([...TTY_BUILTINS, ...TTY_COMMANDS])];
+  const hits = names.filter(n => n.startsWith(v) && n !== v);
+  if(!v.trim() || !hits.length) return;
+  if(hits.length === 1){ input.value = hits[0] + ' '; return; }
+  let p = hits[0]; for(const h of hits) while(!h.startsWith(p)) p = p.slice(0, -1);
+  if(p.length > v.length) input.value = p;
+  else ttyWrite(`${ttyPromptText()}${v}\n${hits.join('   ')}\n`);
+}
+
+$('term-input').addEventListener('keydown', e => {
+  if(e.isComposing) return;
+  const input = e.target;
+  if(e.key === 'Enter'){ e.preventDefault(); ttySubmit(input.value); }
+  else if(e.ctrlKey && (e.key === 'c' || e.key === 'C') && !window.getSelection().toString()){
+    e.preventDefault();
+    if(tty.awaiting){ const a = tty.awaiting; tty.awaiting = null; ttyUpdatePrompt(); ttyWrite(c(90, '^C\n')); ttyPost('answer', { id: a.id, ok: false }); }
+    else if(tty.running){ ttyWrite(c(90, '^C')); ttyCancel(); }
+    else { ttyWrite(`${ttyPromptText()}${input.value}${c(90, '^C')}\n`); input.value = ''; }
+  }
+  else if(e.ctrlKey && (e.key === 'l' || e.key === 'L')){ e.preventDefault(); ttyOut().textContent = ''; tty.frameEl = null; }
+  else if(e.ctrlKey && (e.key === 'u' || e.key === 'U')){ e.preventDefault(); input.value = ''; }
+  else if(e.key === 'Tab'){ e.preventDefault(); ttyComplete(); }
+  else if(e.key === 'ArrowUp' && tty.history.length){ e.preventDefault(); tty.histIdx = Math.max(0, tty.histIdx - 1); input.value = tty.history[tty.histIdx] || ''; }
+  else if(e.key === 'ArrowDown' && tty.history.length){ e.preventDefault(); tty.histIdx = Math.min(tty.history.length, tty.histIdx + 1); input.value = tty.history[tty.histIdx] || ''; }
+});
+$('tty-scroll').addEventListener('click', () => { if(!window.getSelection().toString()) $('term-input').focus({ preventScroll: true }); });
 
 /* =========================================================
    FILE TRANSFER MODULE
@@ -2321,7 +2852,6 @@ function appendTerminalLine(text){
    file-start / file-end are small JSON control messages.
    ========================================================= */
 const CHUNK_SIZE = 15000;              // + 14-byte header stays under the 16 KiB cross-browser message limit
-const BUFFER_HIGH_WATER = 1_000_000;   // pause sending above this
 const HEADER_BYTES = 14;
 
 function anyOpenChannel(){
@@ -2332,8 +2862,8 @@ function waitForBufferedAmountLow(){
   return new Promise(resolve=>{
     const check = ()=>{
       let max = 0;
-      for(const [,p] of peers) if(p.dc) max = Math.max(max, p.dc.bufferedAmount);
-      if(max < BUFFER_HIGH_WATER) resolve(); else setTimeout(check, 20);
+      for(const [,p] of peers) if(p.dc) max = Math.max(max, p.dc.bufferedAmount + p.qBytes);
+      if(max < HIGH_WATER && !hostPaused) resolve(); else setTimeout(check, 20);
     };
     check();
   });
@@ -2370,6 +2900,7 @@ async function sendFile(file){
   bumpFileCount();
 
   const idBytes = new TextEncoder().encode(transferId); // 10 ASCII bytes
+  const linkRef = isHost ? null : peers.get('host');    // abort if the link is replaced mid-transfer
   try{
     for(let index = 0, offset = 0; offset < file.size; index++, offset += CHUNK_SIZE){
       const payload = new Uint8Array(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer());
@@ -2378,7 +2909,7 @@ async function sendFile(file){
       frame.set(idBytes, 0);
       new DataView(frame.buffer).setUint32(10, index);
       frame.set(payload, HEADER_BYTES);
-      if(!sendBinary(frame.buffer)) throw new Error('lost connection');
+      if((!isHost && peers.get('host') !== linkRef) || !sendBinary(frame.buffer)) throw new Error('lost connection');
       updateFileProgress(transferId, Math.min(100, Math.round(((offset + payload.length) / file.size) * 100)));
     }
     sendPayload({ type:'file-end', data:{ transferId } });
@@ -2448,9 +2979,10 @@ function completeIncomingTransfer(id){
 /* =========================================================
    CLEANUP
    ========================================================= */
-window.addEventListener('pagehide', ()=>{
-  try{ if(nearby.on) nearby.conns.forEach(c => c.stop()); }catch(e){}
-  for(const [,p] of peers){ try{ if(p.dc) p.dc.close(); if(p.pc) p.pc.close(); }catch(e){} }
+window.addEventListener('pagehide', e=>{
+  if(e.persisted) return; // may come back from the back/forward cache — keep everything alive
+  try{ if(nearby.ch) nearby.ch.conns.forEach(c => c.stop()); if(session.ch) session.ch.conns.forEach(c => c.stop()); }catch(err){}
+  for(const [,p] of peers){ try{ if(p.dc) p.dc.close(); if(p.pc) p.pc.close(); }catch(err){} }
 });
 </script>
 </body>

@@ -1,0 +1,14 @@
+{
+  "name": "localshare",
+  "version": "1.0.0",
+  "description": "Chat, a shared document and file transfer between nearby devices (WebRTC), plus a network diagnostics terminal.",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "term": "node terminal/cli.js",
+    "test": "node --test",
+    "build:web": "node terminal/build-web.js"
+  }
+}
