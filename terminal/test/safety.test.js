@@ -179,7 +179,7 @@ test('bridge: info is reachable same-origin; POSTs need token, JSON, and a same-
     assert.equal(ok.status, 200);
     const events = ok.text.trim().split('\n').map(JSON.parse);
     assert.equal(events[0].type, 'start'); assert.equal(events.at(-1).type, 'end'); assert.equal(events.at(-1).exit, 0);
-    assert.match(events.filter(e => e.type === 'out').map(e => e.data).join(''), /Terminal 1\.0\.0/);
+    assert.match(events.filter(e => e.type === 'out').map(e => e.data).join('').replace(/\x1b\[[0-9;]*m/g, ''), /Terminal 1\.0\.0/);
   });
 });
 
