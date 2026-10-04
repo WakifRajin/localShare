@@ -3023,7 +3023,7 @@ function setTextUI(text){
 function copySharedText(){ if(!sharedTA.value){ showToast('Nothing to copy yet', 'warn'); return; } copyText(sharedTA.value); }
 
 /* =========================================================
-   NETTERM — network diagnostics terminal
+   Network diagnostics terminal
    Commands run on the machine hosting localShare (node server.js), through a loopback-only,
    token-protected API; this page is just the front end. Output is streamed as it is produced.
    Without that local agent (e.g. on the hosted site) only the built-in commands work, and
@@ -3136,7 +3136,7 @@ function ttyCapabilities(){
 async function ttyStart(){
   if(tty.started) return;
   tty.started = true;
-  const w = 64, title = ' NETTERM', sub = '  •  NETWORK DIAGNOSTICS';
+  const w = 64, title = ' TERMINAL', sub = '  •  NETWORK DIAGNOSTICS';
   ttyWrite(`${c(90, '╭' + '─'.repeat(w - 2) + '╮')}\n${c(90, '│')}${c(1, title)}${c(90, sub)}${' '.repeat(Math.max(0, w - 2 - title.length - sub.length))}${c(90, '│')}\n${c(90, '╰' + '─'.repeat(w - 2) + '╯')}\n\n`);
   ttyUpdatePrompt(); ttyUpdateStatus();
   const ok = await ttyConnect();
@@ -3261,7 +3261,7 @@ async function ttySubmit(raw){
 
   const w2 = ttyWords(line);
   if(ttyBuiltin(w2[0], w2.slice(1), line)) return;
-  if(w2[0] === 'version' && tty.agent !== 'ok'){ ttyWrite(`NETTERM web terminal\nagent: ${c(33, 'not connected')}\n`); return; }
+  if(w2[0] === 'version' && tty.agent !== 'ok'){ ttyWrite(`Terminal (web)\nagent: ${c(33, 'not connected')}\n`); return; }
   await ttyRun(line);
 }
 

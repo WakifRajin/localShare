@@ -108,7 +108,7 @@ from a branch → `main` → `/docs`**. It runs in *online* mode there.
   notifications; dark and light themes; works on phones (tab bar layout).
 - A real **network diagnostics terminal** (below).
 
-## Network terminal (NETTERM)
+## Network terminal
 
 An engineering-focused terminal for inspecting and debugging local networks —
 Ethernet links, switches, Jetsons, cameras, ROS 2 and telemetry links. It runs
@@ -170,7 +170,7 @@ npm test          # parsers (Linux/macOS/Windows output), safety guards, pipelin
 ## Files
 
 - `server.js` — the optional local relay, static file server and terminal bridge
-- `terminal/` — NETTERM: `parser`, `commands/{network,discovery,bandwidth,capture,diagnostics,security}`,
+- `terminal/` — the diagnostics terminal: `parser`, `commands/{network,discovery,bandwidth,capture,diagnostics,security}`,
   `system/{command_runner,platform,permissions,validate}`, `output/{terminal,json,tables}`,
   `monitoring/`, `logging/`, `config.js`, `cli.js`, and the HTTP bridge
 - `docs/index.html` — the app itself (includes an inlined MIT-licensed

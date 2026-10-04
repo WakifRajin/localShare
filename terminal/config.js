@@ -3,7 +3,7 @@ const os = require('os');
 const path = require('path');
 
 module.exports = {
-  name: 'NETTERM',
+  name: 'Terminal',
   version: '1.0.0',
 
   // Where structured logs and packet captures are written.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * NETTERM command-line front end — same commands as the in-app terminal, for SSH sessions and scripts.
+ * Terminal command-line front end — same commands as the in-app terminal, for SSH sessions and scripts.
  *   node terminal/cli.js                       interactive terminal
  *   node terminal/cli.js ping 192.168.1.1      run one command and exit (exit status = command status)
  */

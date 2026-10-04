@@ -93,7 +93,7 @@ test('--json output is pure JSON (no ANSI, no banners), for success and failure'
   const h = harness();
   assert.equal(await h.run('version --json'), 0);
   const ok = JSON.parse(h.text());
-  assert.equal(ok.name, 'NETTERM'); assert.ok(!/\x1b\[/.test(h.text()));
+  assert.equal(ok.name, 'Terminal'); assert.ok(!/\x1b\[/.test(h.text()));
   const h2 = harness();
   assert.equal(await h2.run('tcp 127.0.0.1 99999 --json'), 1);
   assert.equal(JSON.parse(h2.text()).error.code, 'INVALID');
@@ -179,7 +179,7 @@ test('bridge: info is reachable same-origin; POSTs need token, JSON, and a same-
     assert.equal(ok.status, 200);
     const events = ok.text.trim().split('\n').map(JSON.parse);
     assert.equal(events[0].type, 'start'); assert.equal(events.at(-1).type, 'end'); assert.equal(events.at(-1).exit, 0);
-    assert.match(events.filter(e => e.type === 'out').map(e => e.data).join(''), /NETTERM/);
+    assert.match(events.filter(e => e.type === 'out').map(e => e.data).join(''), /Terminal 1\.0\.0/);
   });
 });
 

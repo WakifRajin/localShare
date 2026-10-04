@@ -25,7 +25,7 @@ class Logger {
     if (this.active) return { already: true, file: this.file };
     fs.mkdirSync(config.logDir, { recursive: true, mode: 0o700 });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const safe = fileName && /^[\w.-]{1,80}$/.test(fileName) ? fileName : `netterm-${stamp}.jsonl`;
+    const safe = fileName && /^[\w.-]{1,80}$/.test(fileName) ? fileName : `terminal-${stamp}.jsonl`;
     this.file = path.join(config.logDir, safe.endsWith('.jsonl') ? safe : safe + '.jsonl');
     this.active = true; this.count = 0; this.startedAt = new Date();
     return { already: false, file: this.file };

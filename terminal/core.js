@@ -161,7 +161,7 @@ function createTerminal({ logger = new Logger(), extraInfo = () => ({}) } = {}) 
     execute,
     capabilities,
     renderCapabilities,
-    banner: style => banner(style, config.name, 'NETWORK DIAGNOSTICS'),
+    banner: style => banner(style, config.name.toUpperCase(), 'NETWORK DIAGNOSTICS'),
     logger,
     info: () => ({ name: config.name, version: config.version, platform: platform.label(), hostname: platform.hostname(), user: platform.username(), startedAt, ...extraInfo() }),
   };
