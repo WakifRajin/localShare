@@ -31,6 +31,11 @@ const { createTerminalHttp } = require('./terminal/http');
 const PORT = Number(process.env.PORT) || 8787;
 const APP_DIR = path.join(__dirname, 'docs');
 const INDEX_FILE = path.join(APP_DIR, 'index.html');
+// Only these file types are ever served from docs/ (besides index.html) — nothing else is reachable.
+const STATIC_TYPES = {
+  '.js': 'text/javascript; charset=utf-8', '.webmanifest': 'application/manifest+json; charset=utf-8', '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.css': 'text/css; charset=utf-8',
+};
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L — easy to read aloud
 const ROOM_TTL_MS = 15 * 60 * 1000;
@@ -200,6 +205,16 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p.startsWith('/api/')) throw new HttpError(404, 'unknown endpoint');
+
+    // --- Other static assets of the app (manifest, service worker, icons) ---
+    if ((req.method === 'GET' || req.method === 'HEAD') && STATIC_TYPES[path.extname(p).toLowerCase()]) {
+      const file = path.normalize(path.join(APP_DIR, decodeURIComponent(p)));
+      if (file.startsWith(APP_DIR + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
+        const data = fs.readFileSync(file);
+        res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': STATIC_TYPES[path.extname(file).toLowerCase()], 'Content-Length': data.length, 'Cache-Control': 'no-cache' });
+        return res.end(req.method === 'HEAD' ? undefined : data);
+      }
+    }
 
     res.writeHead(404, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain' });
     res.end('Not found');

@@ -8,6 +8,8 @@
 <meta name="description" content="Chat, a live shared document and file transfer between devices on the same network — peer-to-peer over WebRTC, no accounts, no cloud.">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2334d399'/%3E%3Cstop offset='1' stop-color='%230d9467'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M8.5 14.5a10.5 10.5 0 0 1 15 0M11.5 18a6.2 6.2 0 0 1 9 0' stroke='%2303140d' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='22.2' r='2' fill='%2303140d'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
 <script>
   // Applied before first paint to avoid a theme flash-of-wrong-colors on load.
   (function(){
@@ -344,6 +346,125 @@
   .toast.err{ border-color:var(--danger); }
   @keyframes toastIn{ from{ opacity:0; transform:translateY(8px) scale(.98); } to{ opacity:1; transform:none; } }
 
+  /* ---------- Settings, command palette, shortcuts ---------- */
+  .overlay.top{ align-items:flex-start; padding-top:12vh; }
+  .settings-card{ max-width:520px; }
+  .settings-card h1{ margin-bottom:14px; }
+  .set-group{ margin-top:20px; }
+  .set-group h3{ font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .set-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:11px 0; border-top:1px solid var(--line); cursor:pointer; }
+  .set-group .set-row:first-of-type{ border-top:none; }
+  .set-row b{ display:block; font-size:.92rem; font-weight:600; }
+  .set-row small{ display:block; color:var(--muted); font-size:.78rem; line-height:1.35; margin-top:1px; }
+  .set-row .btn{ flex-shrink:0; }
+  .inline{ display:flex; gap:8px; }
+  .inline input{ flex:1; min-width:0; }
+  .switch{ position:relative; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .switch i{ position:absolute; inset:0; border-radius:99px; background:var(--surface-3); border:1px solid var(--line-strong); transition:.18s; pointer-events:none; }
+  .switch i::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--muted); transition:.18s; }
+  .switch input:checked + i{ background:var(--accent); border-color:var(--accent); }
+  .switch input:checked + i::after{ transform:translateX(18px); background:var(--accent-ink); }
+  .switch input:focus-visible + i{ outline:2px solid var(--accent); outline-offset:2px; }
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden; flex-shrink:0; }
+  .seg button{ padding:7px 12px; font-size:.82rem; font-weight:600; color:var(--muted); background:var(--surface-2); }
+  .seg button + button{ border-left:1px solid var(--line); }
+  .seg button.on{ background:var(--accent-soft); color:var(--accent); }
+  kbd{ font-family:var(--mono); font-size:.72rem; padding:2px 7px; border-radius:6px; border:1px solid var(--line-strong); border-bottom-width:2px; background:var(--surface-2); color:var(--text); white-space:nowrap; }
+  .palette{ max-width:560px; padding:10px; border-radius:var(--r-lg); }
+  .palette input{ width:100%; height:46px; padding:0 14px; background:transparent; border:none; border-bottom:1px solid var(--line); font-size:1rem; outline:none; margin-bottom:6px; }
+  .pal-list{ max-height:min(52vh, 380px); overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+  .pal-item{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--r-sm); text-align:left; color:var(--text); font-size:.92rem; }
+  .pal-item .i{ color:var(--muted); }
+  .pal-item .hint{ margin-left:auto; font-size:.72rem; color:var(--muted); font-family:var(--mono); }
+  .pal-item.sel{ background:var(--accent-soft); }
+  .pal-item.sel .i{ color:var(--accent); }
+  .pal-empty{ padding:18px; text-align:center; color:var(--muted); font-size:.88rem; }
+  .shortcut-grid{ display:grid; grid-template-columns:1fr auto; gap:10px 18px; align-items:center; font-size:.9rem; }
+  .shortcut-grid span:nth-child(odd){ color:var(--muted); }
+  .typing-line{ height:20px; font-size:.78rem; color:var(--muted); padding:0 20px; margin:-4px 0 4px; display:flex; align-items:center; gap:6px; }
+  .typing-line .dots{ display:inline-flex; gap:3px; }
+  .typing-line .dots i{ width:4px; height:4px; border-radius:50%; background:var(--accent); animation:blink 1.2s infinite; }
+  .typing-line .dots i:nth-child(2){ animation-delay:.2s; } .typing-line .dots i:nth-child(3){ animation-delay:.4s; }
+  .rtt{ font-family:var(--mono); font-size:.72rem; }
+  .rtt.good{ color:var(--accent); } .rtt.mid{ color:var(--warn); } .rtt.bad{ color:var(--danger); }
+  html[data-density="compact"] .msg{ padding:6px 11px; font-size:.88rem; }
+  html[data-density="compact"] .msg-row{ margin-top:6px; }
+  html[data-density="compact"] .view{ padding:18px; }
+  html[data-density="compact"] .peer-row, html[data-density="compact"] .file-item{ padding:9px 12px; }
+  @media (max-width:640px){ .overlay.top{ padding-top:8vh; } }
+
+  /* ---------- Chat: rich text, images, clips, search ---------- */
+  .chat-tools{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .search-box{ flex:1; display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; background:var(--surface); border:1px solid var(--line); border-radius:99px; color:var(--muted); transition:border-color .15s, box-shadow .15s; }
+  .search-box:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .search-box input{ flex:1; min-width:0; background:transparent; border:none; outline:none; font-size:.88rem; }
+  .composer{ align-items:flex-end; padding:6px 6px 6px 8px; border-radius:var(--r-lg); }
+  .composer textarea{ flex:1; min-width:0; background:transparent; border:none; outline:none; resize:none; font-size:.95rem; line-height:1.45; padding:9px 6px; max-height:140px; height:40px; }
+  .composer .icon-btn{ width:40px; height:40px; border-radius:50%; }
+  .msg a{ color:inherit; text-decoration:underline; text-underline-offset:2px; word-break:break-all; }
+  .msg-row.peer .msg a{ color:var(--accent); }
+  .msg code.ic{ font-family:var(--mono); font-size:.86em; padding:1px 6px; border-radius:6px; background:rgba(127,127,127,.2); }
+  .msg pre.cb{ position:relative; margin:6px 0 2px; padding:10px 12px; border-radius:var(--r-sm); background:#0b0d11; color:#d3d9e2; font-family:var(--mono); font-size:.8rem; line-height:1.5; white-space:pre; overflow-x:auto; max-width:min(70vw, 560px); }
+  .msg .mention{ font-weight:700; padding:0 3px; border-radius:5px; background:rgba(127,127,127,.2); }
+  .msg .mention.me{ background:var(--warn); color:#1a1200; }
+  .msg-row.mentioned .msg{ box-shadow:0 0 0 2px var(--warn); }
+  .msg.clip{ border:1px dashed var(--accent-line); background:var(--accent-soft) !important; color:var(--text) !important; width:min(100%, 420px); }
+  .msg.clip .clip-head{ display:flex; align-items:center; gap:8px; font-size:.74rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+  .msg.clip .clip-head .btn{ margin-left:auto; text-transform:none; letter-spacing:0; }
+  .msg.clip pre{ margin:0; font-family:var(--mono); font-size:.82rem; white-space:pre-wrap; overflow-wrap:anywhere; max-height:200px; overflow:auto; }
+  .msg.img{ padding:4px; background:var(--surface-3) !important; color:var(--text) !important; }
+  .imgbox{ position:relative; display:block; min-width:140px; min-height:90px; max-width:min(78vw, 360px); border-radius:12px; overflow:hidden; cursor:zoom-in; }
+  .imgbox img{ display:block; max-width:100%; max-height:320px; border-radius:12px; }
+  .imgbox .imgprog{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.45); color:#fff; font-size:.78rem; font-weight:600; }
+  .imgbox.loaded .imgprog{ display:none; }
+  .msg-row.hide{ display:none; }
+  .system-line.hide{ display:none; }
+
+  /* ---------- Files: previews, targets, tools ---------- */
+  .head-tools{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .sel{ height:36px; padding:0 30px 0 12px; border-radius:var(--r-sm); background:var(--surface-2); border:1px solid var(--line); color:var(--text); font-size:.85rem; max-width:200px; }
+  .section-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:26px 0 12px; }
+  .section-head .section-title{ margin:0; }
+  .file-item .fthumb{ width:42px; height:42px; border-radius:11px; object-fit:cover; cursor:zoom-in; flex-shrink:0; background:var(--surface-3); }
+  .file-item .fcancel{ flex-shrink:0; }
+  .file-item.cancelled .fpct{ color:var(--muted); }
+  .lightbox{ position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.88); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; gap:14px; }
+  .lightbox.hidden{ display:none; }
+  .lightbox img{ max-width:100%; max-height:calc(100dvh - 120px); border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .lightbox .bar{ display:flex; align-items:center; gap:10px; color:#e5e7eb; font-size:.85rem; max-width:100%; }
+  .lightbox .bar span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .drop-overlay{ position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter:blur(6px); pointer-events:none; }
+  .drop-overlay.show{ display:flex; }
+  .drop-overlay div{ border:2px dashed var(--accent); border-radius:24px; padding:42px 54px; text-align:center; color:var(--accent); font-weight:600; font-size:1.05rem; background:var(--accent-soft); }
+  .drop-overlay small{ display:block; font-weight:400; color:var(--muted); margin-top:6px; }
+
+  /* ---------- Document tools + preview ---------- */
+  .doc-preview{ flex:1; min-height:0; overflow:auto; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:22px 26px; line-height:1.7; font-size:.98rem; }
+  .doc-preview h1, .doc-preview h2, .doc-preview h3, .doc-preview h4{ letter-spacing:-.02em; line-height:1.3; margin:1.1em 0 .45em; }
+  .doc-preview h1{ font-size:1.7rem; } .doc-preview h2{ font-size:1.35rem; } .doc-preview h3{ font-size:1.12rem; } .doc-preview h4, .doc-preview h5, .doc-preview h6{ font-size:1rem; }
+  .doc-preview > :first-child{ margin-top:0; }
+  .doc-preview p{ margin:.6em 0; white-space:pre-wrap; }
+  .doc-preview ul, .doc-preview ol{ margin:.6em 0 .6em 1.4em; }
+  .doc-preview li{ margin:.2em 0; }
+  .doc-preview blockquote{ margin:.8em 0; padding:.2em 1em; border-left:3px solid var(--accent); color:var(--muted); white-space:pre-wrap; }
+  .doc-preview pre{ margin:.8em 0; padding:12px 14px; background:#0b0d11; color:#d3d9e2; border-radius:var(--r-sm); font-family:var(--mono); font-size:.84rem; overflow:auto; }
+  .doc-preview code.ic{ font-family:var(--mono); font-size:.88em; padding:1px 6px; border-radius:6px; background:var(--surface-3); }
+  .doc-preview hr{ border:none; border-top:1px solid var(--line); margin:1.4em 0; }
+  .doc-preview a{ color:var(--accent); }
+  #shared-textarea.wide{ font-family:var(--mono); }
+
+  /* ---------- Whiteboard ---------- */
+  .draw-tools{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .draw-tools .grow{ flex:1; }
+  .swatches{ display:flex; gap:6px; }
+  .swatches button{ width:26px; height:26px; border-radius:50%; border:2px solid var(--line-strong); background:var(--c); transition:transform .12s; }
+  .swatches button.on{ border-color:var(--text); transform:scale(1.15); }
+  .canvas-wrap{ background:#fbfcfd; border:1px solid var(--line); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow); flex-shrink:0; }
+  #draw-canvas{ display:block; width:100%; height:auto; aspect-ratio:16/10; touch-action:none; cursor:crosshair; }
+  .seg button .i{ width:16px; height:16px; }
+  .seg button{ display:inline-flex; align-items:center; justify-content:center; min-width:38px; }
+
   /* ---------- Responsive ---------- */
   @media (max-width:860px){
     .sidebar{ width:76px; padding:14px 10px; }
@@ -428,6 +549,22 @@
     <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 3.9 11.5a8.5 8.5 0 0 1 17.1 0z"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
     <symbol id="i-file" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7M5 11l9 9"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-upload-cloud" viewBox="0 0 24 24"><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2M12 12v9M16 16l-4-4-4 4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
     <symbol id="i-github" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></symbol>
   </defs>
 </svg>
@@ -583,6 +720,75 @@
   </div>
 </div>
 
+<!-- SETTINGS -->
+<div id="settings-modal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title" onmousedown="if(event.target===this) closeModal('settings-modal')">
+  <div class="card settings-card">
+    <div class="card-corner"><button class="icon-btn" onclick="closeModal('settings-modal')" aria-label="Close settings"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <h1 id="settings-title">Settings</h1>
+
+    <div class="set-group">
+      <h3>Profile</h3>
+      <div class="field" style="margin:0">
+        <label for="set-name">Display name</label>
+        <div class="inline"><input type="text" id="set-name" maxlength="24" autocomplete="off"><button class="btn primary" onclick="saveName()">Save</button></div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <h3>Notifications</h3>
+      <label class="set-row"><span><b>Message sound</b><small>A soft tone when a message arrives while you're on another tab or app</small></span><span class="switch"><input type="checkbox" id="set-sound"><i></i></span></label>
+      <label class="set-row"><span><b>Desktop notifications</b><small>Show new messages when this tab is in the background</small></span><span class="switch"><input type="checkbox" id="set-notify"><i></i></span></label>
+    </div>
+
+    <div class="set-group">
+      <h3>Appearance</h3>
+      <div class="set-row"><span><b>Theme</b></span><span class="seg" id="set-theme"><button data-theme="system">System</button><button data-theme="dark">Dark</button><button data-theme="light">Light</button></span></div>
+      <label class="set-row"><span><b>Compact layout</b><small>Tighter spacing to fit more on screen</small></span><span class="switch"><input type="checkbox" id="set-compact"><i></i></span></label>
+    </div>
+
+    <div class="set-group">
+      <h3>App</h3>
+      <div class="set-row" id="set-install-row" style="display:none"><span><b>Install localShare</b><small>Open it like a normal app, even offline</small></span><button class="btn sm" onclick="installApp()">Install</button></div>
+      <div class="set-row"><span><b>Keyboard shortcuts</b><small>Press <kbd>?</kbd> anywhere</small></span><button class="btn sm" onclick="closeModal('settings-modal'); openModal('shortcuts-modal')">View</button></div>
+      <div class="set-row"><span><b>Export chat</b><small>Save this conversation as text or JSON</small></span><span class="inline"><button class="btn sm" onclick="exportChat('txt')">.txt</button><button class="btn sm" onclick="exportChat('json')">.json</button></span></div>
+      <div class="set-row"><span><b>Reset local data</b><small>Forget your name, settings and terminal history on this device</small></span><button class="btn sm danger" onclick="resetLocalData()">Reset</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div id="palette-modal" class="overlay top hidden" role="dialog" aria-modal="true" aria-label="Command palette" onmousedown="if(event.target===this) closeModal('palette-modal')">
+  <div class="card palette">
+    <input type="text" id="pal-input" placeholder="Type a command…" autocomplete="off" spellcheck="false" aria-label="Search commands">
+    <div class="pal-list" id="pal-list" role="listbox"></div>
+  </div>
+</div>
+
+<!-- SHORTCUTS -->
+<div id="shortcuts-modal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" onmousedown="if(event.target===this) closeModal('shortcuts-modal')">
+  <div class="card" style="max-width:440px">
+    <div class="card-corner"><button class="icon-btn" onclick="closeModal('shortcuts-modal')" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <h1 id="shortcuts-title">Keyboard shortcuts</h1>
+    <p class="sub">Work faster without leaving the keyboard.</p>
+    <div class="shortcut-grid">
+      <span>Command palette</span><span><kbd>Ctrl</kbd> + <kbd>K</kbd></span>
+      <span>Switch section</span><span><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>6</kbd></span>
+      <span>Jump to the message box</span><span><kbd>/</kbd></span>
+      <span>This help</span><span><kbd>?</kbd></span>
+      <span>Close a dialog</span><span><kbd>Esc</kbd></span>
+      <span>Paste an image into chat</span><span><kbd>Ctrl</kbd> + <kbd>V</kbd></span>
+      <span>Terminal: cancel / clear / complete</span><span><kbd>Ctrl</kbd>+<kbd>C</kbd> · <kbd>Ctrl</kbd>+<kbd>L</kbd> · <kbd>Tab</kbd></span>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE LIGHTBOX + GLOBAL DROP TARGET -->
+<div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="Image preview" onclick="if(event.target===this) closeLightbox()">
+  <img id="lightbox-img" alt="">
+  <div class="bar"><span id="lightbox-name"></span><a class="btn sm primary" id="lightbox-dl" download><svg class="i sm"><use href="#i-download"/></svg> Save</a><button class="btn sm" onclick="closeLightbox()">Close</button></div>
+</div>
+<div id="drop-overlay" class="drop-overlay" aria-hidden="true"><div>Drop to send<small id="drop-overlay-sub">Images go into the chat, other files are sent as transfers</small></div></div>
+
 <!-- INCOMING CONNECTION REQUEST -->
 <div id="request-modal" class="overlay hidden" style="z-index:60" role="dialog" aria-modal="true" aria-labelledby="request-title">
   <div class="card request-card">
@@ -607,6 +813,8 @@
     <div class="top-actions">
       <span class="status-pill"><span class="dot connecting" id="conn-dot"></span><span class="txt" id="conn-summary">Just you</span></span>
       <a class="icon-btn" href="https://github.com/WakifRajin/localShare" target="_blank" rel="noopener noreferrer" title="Open source on GitHub" aria-label="GitHub repository"><svg class="i fill"><use href="#i-github"/></svg></a>
+      <button class="icon-btn" onclick="openPalette()" title="Command palette (Ctrl+K)" aria-label="Open command palette"><svg class="i"><use href="#i-search"/></svg></button>
+      <button class="icon-btn" onclick="openSettings()" title="Settings" aria-label="Open settings"><svg class="i"><use href="#i-settings"/></svg></button>
       <button class="icon-btn" onclick="toggleTheme()" title="Toggle dark / light theme" aria-label="Toggle dark or light theme"><svg class="i"><use href="#i-contrast"/></svg></button>
       <button class="btn primary sm" id="invite-btn" onclick="openInvite()" style="display:none"><svg class="i sm"><use href="#i-user-plus"/></svg><span class="btn-text">Invite</span></button>
       <button class="btn ghost danger sm" onclick="leaveSession()" title="Leave this session"><svg class="i sm"><use href="#i-logout"/></svg><span class="btn-text">Leave</span></button>
@@ -622,6 +830,7 @@
       <button class="nav-btn" data-view="chat" onclick="switchView('chat')"><svg class="i"><use href="#i-chat"/></svg><span class="label">Chat</span><span class="count alert" id="chat-count" style="display:none">0</span></button>
       <button class="nav-btn" data-view="text" onclick="switchView('text')"><svg class="i"><use href="#i-doc"/></svg><span class="label">Shared doc</span></button>
       <button class="nav-btn" data-view="files" onclick="switchView('files')"><svg class="i"><use href="#i-folder"/></svg><span class="label">Files</span><span class="count" id="file-count" style="display:none">0</span></button>
+      <button class="nav-btn" data-view="draw" onclick="switchView('draw')"><svg class="i"><use href="#i-pen"/></svg><span class="label">Whiteboard</span></button>
       <button class="nav-btn" data-view="terminal" onclick="switchView('terminal')"><svg class="i"><use href="#i-terminal"/></svg><span class="label">Terminal</span></button>
       <div class="sidebar-foot" id="sidebar-foot"></div>
     </nav>
@@ -645,33 +854,84 @@
       </section>
 
       <section id="view-chat" class="view">
-        <div class="chat-box" id="chat-box" aria-live="polite">
-          <div class="empty" id="chat-empty"><div class="ico"><svg class="i lg"><use href="#i-chat"/></svg></div><b>No messages yet</b>Say hi — messages go straight to everyone in the session.</div>
+        <div class="chat-tools">
+          <label class="search-box"><svg class="i sm"><use href="#i-search"/></svg><input type="text" id="chat-search" placeholder="Search messages" autocomplete="off" aria-label="Search messages"></label>
+          <button class="icon-btn bordered" onclick="exportChat('txt')" title="Export chat" aria-label="Export chat"><svg class="i"><use href="#i-download"/></svg></button>
         </div>
+        <div class="chat-box" id="chat-box" aria-live="polite">
+          <div class="empty" id="chat-empty"><div class="ico"><svg class="i lg"><use href="#i-chat"/></svg></div><b>No messages yet</b>Say hi — or paste a screenshot. Messages go straight to everyone in the session.</div>
+        </div>
+        <div class="typing-line" id="typing-line" aria-live="polite"></div>
         <div class="composer">
-          <input type="text" id="chat-input" placeholder="Write a message…" autocomplete="off" aria-label="Message">
+          <button class="icon-btn" onclick="document.getElementById('chat-file').click()" title="Attach a file or image" aria-label="Attach a file or image"><svg class="i"><use href="#i-paperclip"/></svg></button>
+          <button class="icon-btn" onclick="shareClipboard()" title="Share my clipboard" aria-label="Share my clipboard"><svg class="i"><use href="#i-clipboard"/></svg></button>
+          <textarea id="chat-input" rows="1" placeholder="Write a message…  (Shift+Enter for a new line)" autocomplete="off" aria-label="Message"></textarea>
           <button class="send" onclick="sendChat()" aria-label="Send message"><svg class="i"><use href="#i-send"/></svg></button>
+          <input type="file" id="chat-file" style="display:none" multiple>
         </div>
       </section>
 
       <section id="view-text" class="view">
-        <div class="view-head text-toolbar" style="margin-bottom:14px">
-          <div><h2>Shared document</h2><p>Edits sync to everyone instantly. <span class="text-meta" id="text-meta"></span></p></div>
-          <button class="btn sm" onclick="copySharedText()"><svg class="i sm"><use href="#i-copy"/></svg> Copy text</button>
+        <div class="view-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px">
+          <div><h2>Shared document</h2><p>Edits merge for everyone instantly. <span class="text-meta" id="text-meta"></span></p></div>
+          <div class="head-tools">
+            <span class="seg" id="doc-mode"><button data-mode="edit" class="on">Edit</button><button data-mode="preview">Preview</button></span>
+            <button class="btn sm" onclick="docFont(-1)" title="Smaller text" aria-label="Smaller text">A−</button>
+            <button class="btn sm" onclick="docFont(1)" title="Larger text" aria-label="Larger text">A+</button>
+            <button class="btn sm" onclick="document.getElementById('doc-file').click()"><svg class="i sm"><use href="#i-folder"/></svg> Open</button>
+            <button class="btn sm" onclick="downloadDoc()"><svg class="i sm"><use href="#i-download"/></svg> Save</button>
+            <button class="btn sm" onclick="copySharedText()"><svg class="i sm"><use href="#i-copy"/></svg> Copy</button>
+            <button class="btn sm danger" onclick="clearDoc()"><svg class="i sm"><use href="#i-trash"/></svg> Clear</button>
+            <input type="file" id="doc-file" accept=".txt,.md,.markdown,.csv,.log,text/*" style="display:none">
+          </div>
         </div>
-        <textarea id="shared-textarea" placeholder="Start typing… everyone in the session sees this live." aria-label="Shared document"></textarea>
+        <textarea id="shared-textarea" placeholder="Start typing… everyone in the session sees this live. Markdown works in Preview." aria-label="Shared document"></textarea>
+        <div class="doc-preview" id="doc-preview" style="display:none"></div>
       </section>
 
       <section id="view-files" class="view">
-        <div class="view-head"><h2>Files</h2><p>Send files straight to everyone in the session.</p></div>
+        <div class="view-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div><h2>Files</h2><p>Send files and images device to device.</p></div>
+          <div class="head-tools"><label for="file-target" class="sr-only">Send to</label><select id="file-target" class="sel" aria-label="Send to"><option value="">Everyone</option></select></div>
+        </div>
         <div class="file-drop" id="file-drop" role="button" tabindex="0" aria-label="Choose files to send">
           <div class="ico"><svg class="i lg"><use href="#i-upload"/></svg></div>
-          <p class="big">Click or drop files here to send</p>
-          <p>Sent device to device. Files are held in memory while transferring, so very large files will be slow.</p>
+          <p class="big">Click, drop or paste files here to send</p>
+          <p>Sent directly, device to device. Files are held in memory while transferring, so very large files will be slow.</p>
           <input type="file" id="file-input" style="display:none" multiple>
         </div>
-        <h3 class="section-title">Transfers</h3>
+        <div class="section-head">
+          <h3 class="section-title">Transfers</h3>
+          <div class="head-tools">
+            <button class="btn sm" id="save-all-btn" onclick="saveAllReceived()" style="display:none"><svg class="i sm"><use href="#i-download"/></svg> Save all</button>
+            <button class="btn sm ghost" id="clear-done-btn" onclick="clearFinished()" style="display:none">Clear finished</button>
+          </div>
+        </div>
         <div class="file-list" id="file-list"><div class="empty" id="file-empty">No transfers yet.</div></div>
+      </section>
+
+      <section id="view-draw" class="view">
+        <div class="view-head"><h2>Whiteboard</h2><p>Sketch together — strokes appear for everyone as you draw.</p></div>
+        <div class="draw-tools">
+          <span class="seg" id="draw-tool">
+            <button data-tool="pen" class="on" title="Pen" aria-label="Pen"><svg class="i"><use href="#i-pen"/></svg></button>
+            <button data-tool="eraser" title="Eraser" aria-label="Eraser"><svg class="i"><use href="#i-eraser"/></svg></button>
+          </span>
+          <span class="swatches" id="draw-colors">
+            <button data-color="#111827" style="--c:#111827" class="on" aria-label="Black"></button>
+            <button data-color="#ef4444" style="--c:#ef4444" aria-label="Red"></button>
+            <button data-color="#3b82f6" style="--c:#3b82f6" aria-label="Blue"></button>
+            <button data-color="#10b981" style="--c:#10b981" aria-label="Green"></button>
+            <button data-color="#f59e0b" style="--c:#f59e0b" aria-label="Amber"></button>
+            <button data-color="#8b5cf6" style="--c:#8b5cf6" aria-label="Purple"></button>
+          </span>
+          <span class="seg" id="draw-size"><button data-size="2">S</button><button data-size="5" class="on">M</button><button data-size="12">L</button></span>
+          <span class="grow"></span>
+          <button class="btn sm" onclick="drawUndo()"><svg class="i sm"><use href="#i-undo"/></svg> Undo</button>
+          <button class="btn sm" onclick="drawExport()"><svg class="i sm"><use href="#i-image"/></svg> PNG</button>
+          <button class="btn sm danger" onclick="drawClear()"><svg class="i sm"><use href="#i-trash"/></svg> Clear</button>
+        </div>
+        <div class="canvas-wrap"><canvas id="draw-canvas" width="1280" height="800" aria-label="Shared whiteboard"></canvas></div>
       </section>
 
       <section id="view-terminal" class="view">
@@ -987,12 +1247,6 @@ function avatar(name, size){
 /* =========================================================
    THEME
    ========================================================= */
-function toggleTheme(){
-  const html = document.documentElement;
-  const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  html.setAttribute('data-theme', next);
-  lsSet('localshare_theme', next);
-}
 
 /* =========================================================
    TOASTS
@@ -1775,7 +2029,7 @@ function makePeerConnection(key){
   dropPeer(key); // never leave an orphaned connection under the same key
   const pc = new RTCPeerConnection(config);
   const entry = { pc, dc:null, name:null, remoteId:null, status:'connecting', everOnline:false,
-                  q:[], qBytes:0, drainT:null, unstableT:null, pausedByUs:false };
+                  q:[], qBytes:0, drainT:null, unstableT:null, pausedByUs:false, rtt:null };
   peers.set(key, entry);
   pc.onconnectionstatechange = ()=>{
     if(peers.get(key) !== entry) return;
@@ -1872,7 +2126,7 @@ function setupDataChannel(key, dc){
     sendToKey(key, { type:'presence', data:{ id: myId, name: myName, host: isHost } });
     if(isHost){
       ensureSession();
-      sendToKey(key, { type:'sync', data:{ text: sharedText, rev: textRev, roster: rosterList(), chat: chatLog.slice(-200), sid: session.sid } });
+      sendToKey(key, { type:'sync', data:{ text: sharedText, rev: textRev, roster: rosterList(), chat: chatLog.slice(-200), sid: session.sid, draw: drawSnapshot() } });
     } else {
       resendPending(); // anything the old link swallowed
     }
@@ -2189,19 +2443,41 @@ function leaveSession(){
 /* =========================================================
    INCOMING MESSAGE HANDLING (host relays between joiners)
    ========================================================= */
-const RELAYED_TYPES = new Set(['presence', 'chat', 'file-start', 'file-end']);
+const RELAYED_TYPES = new Set(['presence', 'chat', 'typing', 'draw', 'draw-undo', 'draw-clear', 'file-start', 'file-end', 'file-cancel']);
 const HOST_ONLY_TYPES = new Set(['sync', 'leave', 'text-state', 'ack', 'fc']);
 
 function handleIncoming(fromKey, data){
   if(typeof data !== 'string'){          // binary = file chunk
-    if(isHost){ broadcastRaw(data, fromKey); checkFlow(); }
-    processChunk(data);
+    if(data.byteLength < HEADER_BYTES) return;
+    const route = isHost ? fileRoutes.get(chunkId(data)) : null;
+    if(isHost){
+      if(route && route.to){ if(route.to !== myId){ const k = keyForId(route.to); if(k) sendRaw(peers.get(k), data); } }   // addressed transfer: only the recipient
+      else broadcastRaw(data, fromKey);
+      checkFlow();
+    }
+    if(!route || !route.to || route.to === myId) processChunk(data);
     return;
   }
   let msg;
   try{ msg = JSON.parse(data); }catch(e){ return; }
   if(!msg || typeof msg.type !== 'string' || typeof msg.data !== 'object' || msg.data === null) return;
 
+  if(isHost && FILE_TYPES.has(msg.type) && typeof msg.data.transferId === 'string'){
+    const to = msg.data.to || null;
+    if(msg.type === 'file-start') fileRoutes.set(msg.data.transferId, { to });
+    else fileRoutes.delete(msg.data.transferId);
+    if(to){                                                         // a transfer addressed to one person is never broadcast
+      if(to !== myId){ const k = keyForId(to); if(k) sendToKey(k, { ...msg, relayed:true }); }
+      else { msgsRecv++; processMessage(fromKey, msg); }
+      return;
+    }
+  }
+  if(msg.type === 'ping'){ ctrlSend(fromKey, { type:'pong', data:{ t: msg.data.t } }); return; }
+  if(msg.type === 'pong'){
+    const pe = peers.get(fromKey);
+    if(pe && typeof msg.data.t === 'number'){ const r = performance.now() - msg.data.t; pe.rtt = pe.rtt == null ? r : pe.rtt * 0.6 + r * 0.4; renderPeerList(); }
+    return;
+  }
   if(msg.type === 'text'){               // a joiner's document edit — only the host merges these
     if(!isHost) return;
     const p = peers.get(fromKey);
@@ -2218,7 +2494,7 @@ function handleIncoming(fromKey, data){
     if(isHost) sendToKey(fromKey, { type:'ack', data:{ mids:[msg.data.mid] } });
     return;
   }
-  if(msg.type !== 'fc' && msg.type !== 'ack'){ msgsRecv++; updateDashboardCounts(); }
+  if(msg.type !== 'fc' && msg.type !== 'ack' && msg.type !== 'typing' && msg.type !== 'draw' && msg.type !== 'draw-undo'){ msgsRecv++; updateDashboardCounts(); }
 
   if(isHost && RELAYED_TYPES.has(msg.type)){
     broadcast({ ...msg, relayed:true }, fromKey);
@@ -2235,9 +2511,11 @@ function processMessage(fromKey, msg){
       const name = cleanName(d.name);
       // A relayed presence describes someone else — never let it rename the connection it arrived on.
       if(p && !msg.relayed){ p.name = name; p.remoteId = d.id; }
-      const isNew = !remoteRoster.has(d.id);
+      const prevEntry = remoteRoster.get(d.id);
+      const isNew = !prevEntry;
       remoteRoster.set(d.id, { name, host: !!d.host && !msg.relayed });
       if(isNew) appendSystemLine(`${name} joined the session`);
+      else if(prevEntry.name !== name) appendSystemLine(`${prevEntry.name} is now ${name}`);
       renderPeerList(); updateDashboardCounts();
       break;
     }
@@ -2252,8 +2530,9 @@ function processMessage(fromKey, msg){
       for(const m of (Array.isArray(d.chat) ? d.chat : [])){ // catch up on anything we missed
         if(!m || typeof m.text !== 'string' || !m.mid || seenChat.has(m.mid)) continue;
         seenChat.add(m.mid);
-        appendChatMessage(cleanName(m.name), m.text.slice(0, 5000), m.id === myId, m.ts, m.id);
+        appendChatMessage(cleanName(m.name), m.text.slice(0, 5000), m.id === myId, m.ts, m.id, { kind: m.kind === 'clip' ? 'clip' : undefined });
       }
+      if(Array.isArray(d.draw)) loadStrokes(d.draw);
       renderPeerList(); updateDashboardCounts();
       break;
     case 'leave': {
@@ -2269,12 +2548,26 @@ function processMessage(fromKey, msg){
       if(mid){ if(seenChat.has(mid)) return; seenChat.add(mid); }
       const text = d.text.slice(0, 5000);
       if(isHost){
-        if(mid) logChat({ id:d.id, name:cleanName(d.name), text, ts:Number(d.ts) || Date.now(), mid });
+        if(mid) logChat({ id:d.id, name:cleanName(d.name), text, ts:Number(d.ts) || Date.now(), mid, kind: d.kind === 'clip' ? 'clip' : undefined });
         if(mid && !msg.relayed) sendToKey(fromKey, { type:'ack', data:{ mids:[mid] } });
       }
-      appendChatMessage(cleanName(d.name), text, false, d.ts, d.id);
+      appendChatMessage(cleanName(d.name), text, false, d.ts, d.id, { kind: d.kind === 'clip' ? 'clip' : undefined });
+      typers.delete(d.id); renderTyping();
       break;
     }
+    case 'draw': applyRemoteDraw(d); break;
+    case 'draw-undo': {
+      const i = strokes.findIndex(x => x.id === d.sid);
+      if(i >= 0){ strokes.splice(i, 1); redrawBoard(); }
+      break;
+    }
+    case 'draw-clear':
+      strokes.length = 0; myStrokeIds.length = 0; redrawBoard();
+      appendSystemLine(`${cleanName(d.by)} cleared the whiteboard`);
+      break;
+    case 'typing':
+      if(d.id && d.id !== myId){ typers.set(d.id, { name: cleanName(d.name), t: Date.now() }); renderTyping(); }
+      break;
     case 'ack':
       for(const mid of (Array.isArray(d.mids) ? d.mids : [])){
         outbox.delete(mid);
@@ -2287,13 +2580,20 @@ function processMessage(fromKey, msg){
     case 'file-start': {
       const total = Number(d.totalChunks), size = Number(d.size);
       if(typeof d.transferId !== 'string' || d.transferId.length !== 10 || !(total >= 0 && total <= 5_000_000) || !(size >= 0)) return;
-      incomingTransfers.set(d.transferId, {
-        name: String(d.name || 'file').slice(0, 200), size, mime: String(d.mime || 'application/octet-stream'),
-        totalChunks: total, chunks: new Array(total), received: 0, senderName: cleanName(d.senderName)
-      });
-      renderIncomingFileItem(d.transferId, incomingTransfers.get(d.transferId));
+      if(d.to && d.to !== myId) return;
+      const mime = String(d.mime || 'application/octet-stream');
+      const t = {
+        name: String(d.name || 'file').slice(0, 200), size, mime, totalChunks: total, chunks: new Array(total), received: 0, bytes: 0,
+        senderName: cleanName(d.senderName), inline: !!d.inline && /^image\//.test(mime) && size <= MAX_INLINE_IMAGE,
+      };
+      incomingTransfers.set(d.transferId, t);
+      renderIncomingFileItem(d.transferId, t);
+      if(t.inline) appendImageRow(d.transferId, { name: t.senderName, isMe: false, senderId: typeof d.from === 'string' ? d.from : null, fileName: t.name });
       break;
     }
+    case 'file-cancel':
+      cancelIncoming(d.transferId, 'Cancelled by sender');
+      break;
     case 'file-end':
       completeIncomingTransfer(d.transferId);
       break;
@@ -2374,6 +2674,7 @@ function peerRow(dotClass, name, role, state, extra){
 }
 function renderPeerList(){
   if(typeof renderNearby === 'function') renderNearby();
+  if(typeof refreshTargets === 'function') refreshTargets();
   const list = $('peer-list');
   list.innerHTML = '';
   list.appendChild(peerRow('online', myName + ' (you)', isHost ? 'host' : 'participant', 'you'));
@@ -2385,8 +2686,9 @@ function renderPeerList(){
       continue;
     }
     const state = p.status === 'unstable' ? 'reconnecting…' : p.status;
-    const kick = isHost && p.status !== 'offline'
+    const kick0 = isHost && p.status !== 'offline'
       ? `<button class="icon-btn sm" title="Disconnect ${esc(p.name)}" aria-label="Disconnect ${esc(p.name)}" data-kick="${esc(key)}">${icon('x', 'sm')}</button>` : '';
+    const kick = rttLabel(p) + kick0;
     const row = peerRow(p.status, p.name, role, state, kick);
     const kb = row.querySelector('[data-kick]');
     if(kb) kb.addEventListener('click', ()=> disconnectPeer(key));
@@ -2418,42 +2720,186 @@ function resendPending(){
   for(const msg of outbox.values()) sendToKey('host', msg);
   if(inflight) sendToKey('host', { type:'text', data:{ text: inflight.text, base: appliedRev, seq: inflight.seq, by: myName } });
 }
-function sendChat(){
-  const input = $('chat-input');
-  const text = input.value.trim();
-  if(!text) return;
+/*PURE:BEGIN*/
+// ---- message formatting: **bold**, `code`, ```blocks```, links and @mentions (parsed to tokens, rendered without innerHTML) ----
+const RICH_RE = /(```[\s\S]*?```)|(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(https?:\/\/[^\s<>"']+)|(@[A-Za-z0-9_.-]+)/g;
+function richTokens(text){
+  const out = [];
+  let last = 0, m;
+  RICH_RE.lastIndex = 0;
+  while((m = RICH_RE.exec(text))){
+    if(m.index > last) out.push({ t:'text', v:text.slice(last, m.index) });
+    last = m.index + m[0].length;
+    if(m[1]) out.push({ t:'block', v:m[1].slice(3, -3).replace(/^[a-z0-9+#-]*\n/i, '').replace(/\n$/, '') });
+    else if(m[2]) out.push({ t:'code', v:m[2].slice(1, -1) });
+    else if(m[3]) out.push({ t:'bold', v:m[3].slice(2, -2) });
+    else if(m[4]){
+      let url = m[4], trail = '';
+      while(/[.,;:!?)\]]$/.test(url)){ trail = url.slice(-1) + trail; url = url.slice(0, -1); }
+      out.push({ t:'link', v:url });
+      if(trail) out.push({ t:'text', v:trail });
+    } else out.push({ t:'mention', v:m[5] });
+  }
+  if(last < text.length) out.push({ t:'text', v:text.slice(last) });
+  return out;
+}
+function fmtSpeed(bytesPerSec){
+  if(!(bytesPerSec > 0)) return '';
+  const u = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+  let v = bytesPerSec, i = 0;
+  while(v >= 1024 && i < u.length - 1){ v /= 1024; i++; }
+  return (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + ' ' + u[i];
+}
+function fmtEta(sec){
+  if(!Number.isFinite(sec) || sec < 0) return '';
+  if(sec < 1) return '<1 s';
+  if(sec < 60) return Math.round(sec) + ' s';
+  if(sec < 3600) return Math.floor(sec / 60) + ' min ' + String(Math.round(sec % 60)).padStart(2, '0') + ' s';
+  return Math.floor(sec / 3600) + ' h ' + String(Math.floor((sec % 3600) / 60)).padStart(2, '0') + ' min';
+}
+/*PURE:END*/
+
+function isMentionOfMe(v){
+  const n = v.slice(1).toLowerCase(), me = (myName || '').toLowerCase();
+  return n === 'everyone' || n === 'all' || (!!me && (n === me.replace(/\s+/g, '') || n === me.split(' ')[0]));
+}
+function renderRich(text, into, opts){
+  for(const tok of richTokens(text)){
+    if(tok.t === 'text'){ into.appendChild(document.createTextNode(tok.v)); continue; }
+    if(tok.t === 'bold'){ const b = document.createElement('strong'); b.textContent = tok.v; into.appendChild(b); continue; }
+    if(tok.t === 'code'){ const c = document.createElement('code'); c.className = 'ic'; c.textContent = tok.v; into.appendChild(c); continue; }
+    if(tok.t === 'block'){ const pre = document.createElement('pre'); pre.className = 'cb'; const c = document.createElement('code'); c.textContent = tok.v; pre.appendChild(c); into.appendChild(pre); continue; }
+    if(tok.t === 'mention' && opts && opts.mentions === false){ into.appendChild(document.createTextNode(tok.v)); continue; }
+    if(tok.t === 'mention'){ const s = document.createElement('span'); s.className = 'mention' + (isMentionOfMe(tok.v) ? ' me' : ''); s.textContent = tok.v; into.appendChild(s); continue; }
+    if(tok.t === 'link'){
+      try{
+        const u = new URL(tok.v);
+        if(u.protocol === 'http:' || u.protocol === 'https:'){
+          const a = document.createElement('a');
+          a.href = u.href; a.target = '_blank'; a.rel = 'noopener noreferrer nofollow'; a.textContent = tok.v;
+          into.appendChild(a); continue;
+        }
+      }catch(e){ /* not a valid URL — show as text */ }
+      into.appendChild(document.createTextNode(tok.v));
+    }
+  }
+}
+
+/* ---- sending ---- */
+function postChat(text, kind){
   const ts = Date.now(), mid = uid(12);
-  const msg = { type:'chat', data:{ id: myId, name: myName, text, ts, mid } };
+  const data = { id: myId, name: myName, text, ts, mid };
+  if(kind) data.kind = kind;
+  const msg = { type:'chat', data };
   seenChat.add(mid);
-  const row = appendChatMessage(myName, text, true, ts, myId);
-  input.value = '';
-  if(isHost){ logChat(msg.data); sendPayload(msg); }
+  const row = appendChatMessage(myName, text, true, ts, myId, { kind });
+  if(isHost){ logChat(data); sendPayload(msg); }
   else { outbox.set(mid, msg); pendingRows.set(mid, row); row.classList.add('pending'); sendPayload(msg); }
 }
-$('chat-input').addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.isComposing) sendChat(); });
+function sendChat(){
+  const input = $('chat-input');
+  const text = input.value.replace(/\s+$/, '');
+  if(!text.trim()) return;
+  postChat(text.slice(0, 5000));
+  input.value = '';
+  autosizeChat();
+}
+function autosizeChat(){ const t = $('chat-input'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; }
+$('chat-input').addEventListener('input', autosizeChat);
+$('chat-input').addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendChat(); } });
+$('chat-file').addEventListener('change', e=>{ handleFiles(e.target.files, { inlineImages: true }); e.target.value = ''; });
 
-function appendChatMessage(name, text, isMe, ts, senderId){
+async function shareClipboard(){
+  let text = '';
+  try{ text = await navigator.clipboard.readText(); }
+  catch(e){ text = prompt('Paste the text you want to share with everyone:') || ''; }   // clipboard API needs a secure context + permission
+  text = String(text).trim();
+  if(!text){ showToast('Your clipboard has no text to share', 'warn'); return; }
+  postChat(text.slice(0, 5000), 'clip');
+  switchView('chat');
+}
+
+/* ---- rendering ---- */
+function noteIncoming(isMe, name, preview, mentioned){
+  if(isMe) return;
+  if(currentView !== 'chat' || document.hidden){ unreadChat++; refreshUnread(); notifyIncoming(name, (mentioned ? '(mentioned you) ' : '') + preview); }
+}
+function chatRowShell(isMe, name, ts, senderId){
   const box = $('chat-box');
   const empty = $('chat-empty'); if(empty) empty.remove();
-  ts = Number(ts) || Date.now();
   const grouped = lastChat.id === senderId && (ts - lastChat.ts) < 120000;
   lastChat = { id: senderId, ts };
-
   const row = document.createElement('div');
   row.className = 'msg-row ' + (isMe ? 'me' : 'peer') + (grouped ? ' grouped' : '');
   row.innerHTML = (isMe ? '' : avatar(name, 30)) +
     '<div class="msg-col"><div class="msg-meta"></div><div class="msg"></div></div>' +
     `<button class="icon-btn sm msg-copy" aria-label="Copy message" title="Copy">${icon('copy', 'sm')}</button>`;
   row.querySelector('.msg-meta').innerHTML = `<b>${esc(isMe ? 'You' : name)}</b> · ${esc(fmtTime(ts))}`;
-  row.querySelector('.msg').textContent = text;
-  row.querySelector('.msg-copy').onclick = ()=> copyText(text);
-
+  return { box, row, bubble: row.querySelector('.msg') };
+}
+function pushRow(box, row, isMe){
   const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
   box.appendChild(row);
+  applyChatFilter(row);
   if(isMe || nearBottom) box.scrollTop = box.scrollHeight;
-  if(!isMe && (currentView !== 'chat' || document.hidden)){ unreadChat++; refreshUnread(); }
+}
+function appendChatMessage(name, text, isMe, ts, senderId, opts){
+  opts = opts || {};
+  ts = Number(ts) || Date.now();
+  const { box, row, bubble } = chatRowShell(isMe, name, ts, senderId);
+  if(opts.kind === 'clip'){
+    bubble.classList.add('clip');
+    bubble.innerHTML = `<div class="clip-head">${icon('clipboard', 'sm')}<span>Shared clipboard</span><button class="btn sm">${icon('copy', 'sm')} Copy</button></div><pre></pre>`;
+    bubble.querySelector('pre').textContent = text;
+    bubble.querySelector('button').onclick = ()=> copyText(text, 'Copied to your clipboard');
+  } else renderRich(text, bubble);
+  const mentioned = !isMe && richTokens(text).some(t => t.t === 'mention' && isMentionOfMe(t.v));
+  if(mentioned) row.classList.add('mentioned');
+  row.querySelector('.msg-copy').onclick = ()=> copyText(text);
+  chatArchive.push({ name, text: opts.kind === 'clip' ? '[clipboard] ' + text : text, ts, me: isMe });
+  pushRow(box, row, isMe);
+  noteIncoming(isMe, name, opts.kind === 'clip' ? 'shared their clipboard' : text, mentioned);
   return row;
 }
+
+/* images pasted / dropped / attached show up inline in the chat */
+const imageRows = new Map(); // transferId -> handle
+function appendImageRow(id, { name, isMe, senderId, fileName }){
+  const ts = Date.now();
+  const { box, row, bubble } = chatRowShell(isMe, name, ts, senderId || name);
+  bubble.classList.add('img');
+  bubble.innerHTML = '<div class="imgbox"><img alt=""><div class="imgprog">0%</div></div>';
+  row.querySelector('.msg-copy').remove();
+  const imgbox = bubble.querySelector('.imgbox'), img = bubble.querySelector('img'), prog = bubble.querySelector('.imgprog');
+  imgbox.addEventListener('click', ()=>{ if(imgbox.classList.contains('loaded')) openLightbox(img.src, fileName); });
+  const handle = {
+    row,
+    setSrc(url){ img.src = url; imgbox.classList.add('loaded'); },
+    setProgress(p){ prog.textContent = p + '%'; },
+    fail(msg){ imgbox.classList.remove('loaded'); prog.textContent = msg; },
+  };
+  imageRows.set(id, handle);
+  chatArchive.push({ name, text: `[image] ${fileName}`, ts, me: isMe });
+  pushRow(box, row, isMe);
+  noteIncoming(isMe, name, 'sent an image', false);
+  return handle;
+}
+
+function applyChatFilter(el){
+  const q = $('chat-search').value.trim().toLowerCase();
+  el.classList.toggle('hide', !!q && !el.textContent.toLowerCase().includes(q));
+}
+$('chat-search').addEventListener('input', ()=> document.querySelectorAll('#chat-box .msg-row, #chat-box .system-line').forEach(applyChatFilter));
+
+function openLightbox(src, name){
+  $('lightbox-img').src = src;
+  $('lightbox-name').textContent = name || '';
+  const dl = $('lightbox-dl'); dl.href = src; dl.download = name || 'image';
+  $('lightbox').classList.remove('hidden');
+  if(!modalStack.includes('lightbox')) modalStack.push('lightbox');
+}
+function closeLightbox(){ closeModal('lightbox'); }
+
 function appendSystemLine(text){
   const box = $('chat-box');
   const empty = $('chat-empty'); if(empty) empty.remove();
@@ -2485,6 +2931,7 @@ let sendTextDebounce = null;
 let textRev = 0; const textHist = new Map([[0, '']]); const lastSeq = new Map(); // host side
 let appliedRev = 0, appliedText = '', inflight = null, textSeq = 0;               // everyone
 
+/*PURE:BEGIN*/
 // The single changed region between two strings (common prefix / suffix trimmed off).
 function diffRegion(a, b){
   if(a === b) return null;
@@ -2505,10 +2952,11 @@ function applyPatch(text, patch, baseText){
   pos = Math.max(0, Math.min(text.length, pos));
   return text.slice(0, pos) + patch.ins + text.slice(pos + Math.min(patch.del, text.length - pos));
 }
+/*PURE:END*/
 
 sharedTA.addEventListener('input', ()=>{
   sharedText = sharedTA.value;
-  $('text-meta').textContent = `· ${sharedText.length} chars`;
+  updateDocMeta();
   scheduleTextSend();
 });
 function scheduleTextSend(){ clearTimeout(sendTextDebounce); sendTextDebounce = setTimeout(flushText, 150); }
@@ -2560,7 +3008,7 @@ function rebaseUI(newText, baseText, rev, by){
   const merged = pending ? applyPatch(newText, pending, baseText) : newText;
   appliedText = newText; appliedRev = rev;
   setTextUI(merged);
-  $('text-meta').textContent = (by ? `· last edit by ${cleanName(by)} · ` : '· ') + `${merged.length} chars`;
+  updateDocMeta(by);
   if(pending) scheduleTextSend();
 }
 function setTextUI(text){
@@ -2846,13 +3294,230 @@ $('term-input').addEventListener('keydown', e => {
 });
 $('tty-scroll').addEventListener('click', () => { if(!window.getSelection().toString()) $('term-input').focus({ preventScroll: true }); });
 
+/*PURE:BEGIN*/
+// ---- Markdown subset for the document preview: headings, lists, quotes, code fences, rules, paragraphs ----
+function mdBlocks(text){
+  const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+  const out = [];
+  const LIST = /^\s*[-*+]\s+/, OLIST = /^\s*\d+[.)]\s+/;
+  let i = 0, m;
+  while(i < lines.length){
+    const ln = lines[i];
+    if(/^```/.test(ln)){
+      const buf = []; i++;
+      while(i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+      i++; out.push({ t:'code', v:buf.join('\n') }); continue;
+    }
+    if((m = /^(#{1,6})\s+(.*)$/.exec(ln))){ out.push({ t:'h', level:m[1].length, v:m[2] }); i++; continue; }
+    if(/^\s*([-*_])\1{2,}\s*$/.test(ln)){ out.push({ t:'hr' }); i++; continue; }
+    if(LIST.test(ln)){ const items = []; while(i < lines.length && LIST.test(lines[i])) items.push(lines[i++].replace(LIST, '')); out.push({ t:'ul', items }); continue; }
+    if(OLIST.test(ln)){ const items = []; while(i < lines.length && OLIST.test(lines[i])) items.push(lines[i++].replace(OLIST, '')); out.push({ t:'ol', items }); continue; }
+    if(/^>\s?/.test(ln)){ const buf = []; while(i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, '')); out.push({ t:'quote', v:buf.join('\n') }); continue; }
+    if(!ln.trim()){ i++; continue; }
+    const buf = [ln]; i++;
+    while(i < lines.length && lines[i].trim() && !/^(#{1,6}\s|```|>)/.test(lines[i]) && !LIST.test(lines[i]) && !OLIST.test(lines[i])) buf.push(lines[i++]);
+    out.push({ t:'p', v:buf.join('\n') });
+  }
+  return out;
+}
+function docStats(text){
+  const t = String(text);
+  return { words: (t.match(/\S+/g) || []).length, lines: t ? t.split('\n').length : 0, chars: t.length };
+}
+/*PURE:END*/
+
+/* =========================================================
+   DOCUMENT TOOLS
+   ========================================================= */
+function renderMarkdown(text, into){
+  const inline = (s, el) => renderRich(s, el, { mentions: false });
+  for(const b of mdBlocks(text)){
+    let el;
+    if(b.t === 'h'){ el = document.createElement('h' + Math.min(b.level, 4)); inline(b.v, el); }
+    else if(b.t === 'p'){ el = document.createElement('p'); inline(b.v, el); }
+    else if(b.t === 'quote'){ el = document.createElement('blockquote'); inline(b.v, el); }
+    else if(b.t === 'hr') el = document.createElement('hr');
+    else if(b.t === 'code'){ el = document.createElement('pre'); const c = document.createElement('code'); c.textContent = b.v; el.appendChild(c); }
+    else { el = document.createElement(b.t); for(const it of b.items){ const li = document.createElement('li'); inline(it, li); el.appendChild(li); } }
+    into.appendChild(el);
+  }
+}
+let docPreview = false, docFontSize = Number(lsGet('localshare_docfont')) || 15.5;
+sharedTA.style.fontSize = docFontSize + 'px';
+function updateDocMeta(by){
+  const st = docStats(sharedTA.value);
+  $('text-meta').textContent = (by ? `· last edit by ${cleanName(by)} · ` : '· ') + `${st.words} words · ${st.lines} lines`;
+  if(docPreview) refreshPreview();
+}
+function refreshPreview(){ const box = $('doc-preview'); box.innerHTML = ''; renderMarkdown(sharedTA.value, box); if(!box.children.length) box.innerHTML = '<p style="color:var(--muted)">Nothing to preview yet.</p>'; }
+function setDocMode(mode){
+  docPreview = mode === 'preview';
+  $('shared-textarea').style.display = docPreview ? 'none' : '';
+  $('doc-preview').style.display = docPreview ? '' : 'none';
+  document.querySelectorAll('#doc-mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  if(docPreview) refreshPreview();
+}
+document.querySelectorAll('#doc-mode button').forEach(b => b.addEventListener('click', ()=> setDocMode(b.dataset.mode)));
+function docFont(delta){
+  docFontSize = Math.max(11, Math.min(26, docFontSize + delta));
+  sharedTA.style.fontSize = docFontSize + 'px'; lsSet('localshare_docfont', String(docFontSize));
+}
+function downloadDoc(){
+  if(!sharedTA.value){ showToast('The document is empty', 'warn'); return; }
+  downloadBlob(new Blob([sharedTA.value], { type: 'text/markdown' }), `localshare-document-${stamp()}.md`);
+  showToast('Document saved', 'ok');
+}
+function applyDocText(text){ sharedTA.value = text; sharedTA.dispatchEvent(new Event('input')); }
+function clearDoc(){
+  if(!sharedTA.value) return;
+  if(confirm('Clear the shared document for everyone? (Use Save first if you want a copy.)')) applyDocText('');
+}
+$('doc-file').addEventListener('change', e=>{
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  if(f.size > 2 * 1024 * 1024){ showToast('That file is too large for the shared document (2 MB max)', 'err'); return; }
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    if(sharedTA.value && !confirm(`Replace the shared document with “${f.name}”?`)) return;
+    applyDocText(String(rd.result));
+    showToast(`Loaded ${f.name}`, 'ok');
+  };
+  rd.onerror = ()=> showToast('Could not read that file', 'err');
+  rd.readAsText(f);
+});
+
+/* =========================================================
+   WHITEBOARD — strokes are streamed as they're drawn and the host keeps the full list for late joiners
+   ========================================================= */
+const canvas = $('draw-canvas'), dctx = canvas.getContext('2d');
+const strokes = [];                  // { id, c, w, e, p:[x,y,x,y,...] } — identical on every device
+const myStrokeIds = [];
+const drawState = { tool: 'pen', color: '#111827', size: 5 };
+const MAX_STROKES = 3000;
+
+function paintSegment(s, from){
+  const p = s.p;
+  if(p.length < 2) return;
+  dctx.save();
+  dctx.globalCompositeOperation = s.e ? 'destination-out' : 'source-over';
+  dctx.strokeStyle = s.c; dctx.fillStyle = s.c; dctx.lineWidth = s.w; dctx.lineCap = 'round'; dctx.lineJoin = 'round';
+  if(p.length === 2){ dctx.beginPath(); dctx.arc(p[0], p[1], s.w / 2, 0, Math.PI * 2); dctx.fill(); }
+  else {
+    dctx.beginPath();
+    const start = Math.max(0, from - 2);
+    dctx.moveTo(p[start], p[start + 1]);
+    for(let i = start + 2; i < p.length; i += 2) dctx.lineTo(p[i], p[i + 1]);
+    dctx.stroke();
+  }
+  dctx.restore();
+}
+function redrawBoard(){
+  dctx.clearRect(0, 0, canvas.width, canvas.height);
+  for(const s of strokes) paintSegment(s, 0);
+}
+function drawSnapshot(){
+  // keep the payload bounded: newest strokes first until ~60k coordinates
+  let budget = 60000; const keep = [];
+  for(let i = strokes.length - 1; i >= 0 && budget > 0; i--){ keep.unshift(strokes[i]); budget -= strokes[i].p.length; }
+  return keep;
+}
+function loadStrokes(list){
+  strokes.length = 0;
+  for(const s of (Array.isArray(list) ? list : [])){
+    if(s && typeof s.id === 'string' && Array.isArray(s.p)) strokes.push({ id: s.id.slice(0, 16), c: /^#[0-9a-f]{6}$/i.test(s.c) ? s.c : '#111827', w: Math.max(1, Math.min(40, Number(s.w) || 4)), e: s.e ? 1 : 0, p: s.p.map(Number).filter(Number.isFinite) });
+  }
+  redrawBoard();
+}
+// A remote (or relayed) piece of a stroke
+function applyRemoteDraw(d){
+  if(typeof d.sid !== 'string' || !Array.isArray(d.pts)) return;
+  let s = strokes.find(x => x.id === d.sid);
+  if(!s){
+    s = { id: d.sid.slice(0, 16), c: /^#[0-9a-f]{6}$/i.test(d.c) ? d.c : '#111827', w: Math.max(1, Math.min(40, Number(d.w) || 4)), e: d.e ? 1 : 0, p: [] };
+    strokes.push(s);
+    if(strokes.length > MAX_STROKES) strokes.shift();
+  }
+  const from = s.p.length;
+  for(const n of d.pts.slice(0, 2000)) if(Number.isFinite(Number(n))) s.p.push(Number(n));
+  paintSegment(s, from);
+}
+
+let current = null, lastFlush = 0, sentUpTo = 0;
+function boardPoint(e){
+  const r = canvas.getBoundingClientRect();
+  return [Math.round((e.clientX - r.left) * canvas.width / r.width), Math.round((e.clientY - r.top) * canvas.height / r.height)];
+}
+function flushStroke(force){
+  if(!current) return;
+  const now = performance.now();
+  if(!force && now - lastFlush < 40) return;
+  if(current.p.length > sentUpTo){
+    const pts = current.p.slice(sentUpTo);
+    sendPayload({ type:'draw', data:{ sid: current.id, c: current.c, w: current.w, e: current.e, pts } });
+    sentUpTo = current.p.length; lastFlush = now;
+  }
+}
+canvas.addEventListener('pointerdown', e=>{
+  if(e.button !== undefined && e.button > 0) return;
+  e.preventDefault();
+  try{ canvas.setPointerCapture(e.pointerId); }catch(err){ /* not all pointers can be captured — drawing still works */ }
+  const [x, y] = boardPoint(e);
+  const w = drawState.tool === 'eraser' ? drawState.size * 4 : drawState.size;
+  current = { id: uid(8), c: drawState.color, w, e: drawState.tool === 'eraser' ? 1 : 0, p: [x, y] };
+  strokes.push(current); myStrokeIds.push(current.id);
+  if(strokes.length > MAX_STROKES) strokes.shift();
+  sentUpTo = 0; paintSegment(current, 0); flushStroke(true);
+});
+canvas.addEventListener('pointermove', e=>{
+  if(!current) return;
+  const [x, y] = boardPoint(e);
+  const n = current.p.length;
+  if(Math.abs(x - current.p[n - 2]) + Math.abs(y - current.p[n - 1]) < 2) return;      // skip sub-2px jitter
+  current.p.push(x, y);
+  paintSegment(current, n);
+  flushStroke(false);
+});
+const endStroke = ()=>{ if(!current) return; flushStroke(true); current = null; };
+canvas.addEventListener('pointerup', endStroke);
+canvas.addEventListener('pointercancel', endStroke);
+
+function drawUndo(){
+  const id = myStrokeIds.pop();
+  if(!id){ showToast('Nothing of yours to undo', 'warn'); return; }
+  const i = strokes.findIndex(s => s.id === id);
+  if(i >= 0) strokes.splice(i, 1);
+  redrawBoard();
+  sendPayload({ type:'draw-undo', data:{ sid: id } });
+}
+function drawClear(){
+  if(!strokes.length) return;
+  if(!confirm('Clear the whiteboard for everyone?')) return;
+  strokes.length = 0; myStrokeIds.length = 0; redrawBoard();
+  sendPayload({ type:'draw-clear', data:{ by: myName } });
+}
+function drawExport(){
+  if(!strokes.length){ showToast('The whiteboard is empty', 'warn'); return; }
+  const out = document.createElement('canvas'); out.width = canvas.width; out.height = canvas.height;
+  const o = out.getContext('2d'); o.fillStyle = '#fbfcfd'; o.fillRect(0, 0, out.width, out.height); o.drawImage(canvas, 0, 0);
+  out.toBlob(b => { downloadBlob(b, `localshare-whiteboard-${stamp()}.png`); showToast('Whiteboard saved', 'ok'); }, 'image/png');
+}
+document.querySelectorAll('#draw-tool button').forEach(b => b.addEventListener('click', ()=>{ drawState.tool = b.dataset.tool; document.querySelectorAll('#draw-tool button').forEach(x => x.classList.toggle('on', x === b)); }));
+document.querySelectorAll('#draw-colors button').forEach(b => b.addEventListener('click', ()=>{ drawState.color = b.dataset.color; drawState.tool = 'pen'; document.querySelectorAll('#draw-colors button').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('#draw-tool button').forEach(x => x.classList.toggle('on', x.dataset.tool === 'pen')); }));
+document.querySelectorAll('#draw-size button').forEach(b => b.addEventListener('click', ()=>{ drawState.size = Number(b.dataset.size); document.querySelectorAll('#draw-size button').forEach(x => x.classList.toggle('on', x === b)); }));
+
 /* =========================================================
    FILE TRANSFER MODULE
    Chunks travel as binary frames: [10-byte transfer id][uint32 index][payload].
-   file-start / file-end are small JSON control messages.
+   file-start / file-end / file-cancel are small JSON control messages. A transfer can be addressed to one
+   person ("to"): the host then forwards it only to them.
    ========================================================= */
 const CHUNK_SIZE = 15000;              // + 14-byte header stays under the 16 KiB cross-browser message limit
 const HEADER_BYTES = 14;
+const MAX_INLINE_IMAGE = 8 * 1024 * 1024;
+const outgoingTransfers = new Map();   // id -> { cancelled }
+const transferMeta = new Map();        // id -> speed/ETA bookkeeping
+const fileRoutes = new Map();          // host: transfer id -> { to } for directed transfers
+const FILE_TYPES = new Set(['file-start', 'file-end', 'file-cancel']);
 
 function anyOpenChannel(){
   for(const [,p] of peers) if(p.dc && p.dc.readyState === 'open') return true;
@@ -2868,22 +3533,89 @@ function waitForBufferedAmountLow(){
     check();
   });
 }
+function keyForId(id){
+  for(const [k, p] of peers) if(p.remoteId === id && p.dc && p.dc.readyState === 'open') return k;
+  return null;
+}
+function chunkId(buf){ return String.fromCharCode(...new Uint8Array(buf, 0, 10)); }
 
+/* ---- who can I send to? ---- */
+function participantsForTargets(){
+  const seen = new Map();
+  for(const [id, r] of remoteRoster) if(id !== myId) seen.set(id, r.name);
+  for(const [, p] of peers) if(p.remoteId && p.name && p.status !== 'offline') seen.set(p.remoteId, p.name);
+  return [...seen].map(([id, name]) => ({ id, name }));
+}
+function refreshTargets(){
+  const sel = $('file-target');
+  if(!sel) return;
+  const prev = sel.value;
+  const list = participantsForTargets();
+  sel.innerHTML = '<option value="">Everyone</option>' + list.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  sel.value = list.some(p => p.id === prev) ? prev : '';
+  sel.style.display = list.length > 1 ? '' : 'none';   // with one other person there is nothing to choose
+}
+const currentTarget = ()=> ($('file-target') && $('file-target').value) || '';
+const nameOfId = id => { const p = participantsForTargets().find(x => x.id === id); return p ? p.name : 'one person'; };
+
+/* ---- sending helpers ---- */
+function sendDirected(msg, to){
+  if(!to) return sendPayload(msg);
+  msgsSent++;
+  if(isHost){ const k = keyForId(to); return k ? sendToKey(k, msg) : false; }
+  return sendToKey('host', msg);                       // the host forwards it to `to`
+}
+function sendBinaryTo(buf, to){
+  if(!to) return sendBinary(buf);
+  if(isHost){ const k = keyForId(to); return !!(k && sendRaw(peers.get(k), buf)); }
+  return sendBinary(buf);
+}
+
+/* ---- picking files ---- */
 const dropZone = $('file-drop');
 dropZone.addEventListener('click', ()=> $('file-input').click());
 dropZone.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('file-input').click(); } });
 dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'));
-dropZone.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
-// A missed drop shouldn't navigate the tab to the file.
-window.addEventListener('dragover', e=> e.preventDefault());
-window.addEventListener('drop', e=> e.preventDefault());
-$('file-input').addEventListener('change', e=>{ handleFiles(e.target.files); e.target.value = ''; });
+dropZone.addEventListener('drop', e=>{ e.preventDefault(); e._handled = true; dropZone.classList.remove('drag'); handleFiles(e.dataTransfer.files, { inlineImages: false }); });
+$('file-input').addEventListener('change', e=>{ handleFiles(e.target.files, { inlineImages: false }); e.target.value = ''; });
 
-function handleFiles(fileList){
+function handleFiles(fileList, opts){
+  opts = opts || {};
   if(!anyOpenChannel()){ showToast('No one is connected yet', 'warn'); return; }
-  [...fileList].forEach(sendFile);
+  for(const f of [...fileList]){
+    if(opts.inlineImages && /^image\//.test(f.type) && f.size <= MAX_INLINE_IMAGE) sendImage(f);
+    else sendFile(f);
+  }
 }
+function sendImage(file){
+  const id = uid(10);
+  const handle = appendImageRow(id, { name: myName, isMe: true, senderId: myId, fileName: file.name || 'image' });
+  handle.setSrc(URL.createObjectURL(file));
+  return sendFile(file, { inline: true, transferId: id, to: '' });   // pictures in chat always go to the whole room
+}
+
+// Paste a screenshot / drop files anywhere in the app.
+window.addEventListener('paste', e=>{
+  if(!hasEnteredApp || modalStack.length) return;
+  const files = [...((e.clipboardData && e.clipboardData.files) || [])];
+  if(!files.length) return;
+  e.preventDefault();
+  const inline = currentView !== 'files';
+  if(inline && files.some(f => /^image\//.test(f.type))) switchView('chat');
+  handleFiles(files, { inlineImages: inline });
+});
+let dragDepth = 0;
+const dragHasFiles = e => !!(e.dataTransfer && [...e.dataTransfer.types].includes('Files'));
+window.addEventListener('dragenter', e=>{ if(!dragHasFiles(e)) return; e.preventDefault(); dragDepth++; if(hasEnteredApp) $('drop-overlay').classList.add('show'); });
+window.addEventListener('dragover', e=>{ if(dragHasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e=>{ if(!dragHasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if(!dragDepth) $('drop-overlay').classList.remove('show'); });
+window.addEventListener('drop', e=>{
+  if(!dragHasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $('drop-overlay').classList.remove('show');
+  if(e._handled || !hasEnteredApp) return;
+  handleFiles(e.dataTransfer.files, { inlineImages: currentView !== 'files' });
+});
 
 let fileCount = 0;
 function bumpFileCount(){
@@ -2892,68 +3624,122 @@ function bumpFileCount(){
   badge.style.display = 'inline-flex'; badge.textContent = fileCount;
 }
 
-async function sendFile(file){
-  const transferId = uid(10);
+/* ---- sending a file ---- */
+async function sendFile(file, opts){
+  opts = opts || {};
+  const transferId = opts.transferId || uid(10);
+  const to = opts.to !== undefined ? opts.to : currentTarget();
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-  sendPayload({ type:'file-start', data:{ transferId, name:file.name, size:file.size, mime:file.type || 'application/octet-stream', totalChunks, senderName: myName } });
-  renderOutgoingFileItem(transferId, file.name, file.size);
+  const state = { cancelled: false };
+  outgoingTransfers.set(transferId, state);
+  sendDirected({ type:'file-start', data:{ transferId, name:file.name, size:file.size, mime:file.type || 'application/octet-stream', totalChunks, senderName: myName, from: myId, ...(to ? { to } : {}), ...(opts.inline ? { inline: 1 } : {}) } }, to);
+  renderOutgoingFileItem(transferId, file, to);
   bumpFileCount();
 
   const idBytes = new TextEncoder().encode(transferId); // 10 ASCII bytes
   const linkRef = isHost ? null : peers.get('host');    // abort if the link is replaced mid-transfer
   try{
-    for(let index = 0, offset = 0; offset < file.size; index++, offset += CHUNK_SIZE){
+    for(let index = 0, offset = 0; offset < file.size && !state.cancelled; index++, offset += CHUNK_SIZE){
       const payload = new Uint8Array(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer());
       await waitForBufferedAmountLow();
+      if(state.cancelled) break;
       const frame = new Uint8Array(HEADER_BYTES + payload.length);
       frame.set(idBytes, 0);
       new DataView(frame.buffer).setUint32(10, index);
       frame.set(payload, HEADER_BYTES);
-      if((!isHost && peers.get('host') !== linkRef) || !sendBinary(frame.buffer)) throw new Error('lost connection');
-      updateFileProgress(transferId, Math.min(100, Math.round(((offset + payload.length) / file.size) * 100)));
+      if((!isHost && peers.get('host') !== linkRef) || !sendBinaryTo(frame.buffer, to)) throw new Error('lost connection');
+      const done = Math.min(file.size, offset + payload.length);
+      trackProgress(transferId, done, file.size);
+      updateFileProgress(transferId, Math.min(100, Math.round((done / file.size) * 100)));
     }
-    sendPayload({ type:'file-end', data:{ transferId } });
-    updateFileProgress(transferId, 100, 'done', 'Sent');
+    if(state.cancelled){
+      sendDirected({ type:'file-cancel', data:{ transferId, ...(to ? { to } : {}) } }, to);
+      updateFileProgress(transferId, null, 'cancelled', 'Cancelled');
+    } else {
+      sendDirected({ type:'file-end', data:{ transferId, ...(to ? { to } : {}) } }, to);
+      updateFileProgress(transferId, 100, 'done', 'Sent');
+    }
   }catch(e){
     updateFileProgress(transferId, null, 'failed', 'Failed');
     showToast(`Could not send ${file.name} — connection lost`, 'err');
+  }finally{
+    outgoingTransfers.delete(transferId); transferMeta.delete(transferId);
   }
 }
+function cancelTransfer(id){ const s = outgoingTransfers.get(id); if(s) s.cancelled = true; }
 
+/* ---- receiving ---- */
 function processChunk(buf){
   if(!(buf instanceof ArrayBuffer) || buf.byteLength < HEADER_BYTES) return;
-  const id = String.fromCharCode(...new Uint8Array(buf, 0, 10));
+  const id = chunkId(buf);
   const t = incomingTransfers.get(id);
   if(!t) return;
   const index = new DataView(buf).getUint32(10);
   if(index >= t.totalChunks || t.chunks[index]) return;
   t.chunks[index] = buf.slice(HEADER_BYTES);
-  t.received++;
-  updateFileProgress(id, Math.round((t.received / t.totalChunks) * 100));
+  t.received++; t.bytes = (t.bytes || 0) + (buf.byteLength - HEADER_BYTES);
+  trackProgress(id, t.bytes, t.size);
+  updateFileProgress(id, Math.round((t.received / Math.max(1, t.totalChunks)) * 100));
+}
+function cancelIncoming(id, label){
+  if(!incomingTransfers.has(id)) return;
+  incomingTransfers.delete(id); transferMeta.delete(id);
+  updateFileProgress(id, null, 'cancelled', label || 'Cancelled');
+  const h = imageRows.get(id); if(h) h.fail('Cancelled');
 }
 
+/* ---- transfer list ---- */
 function fileItemId(id){ return 'file-item-' + id; }
-function addFileItem(id, dir, name, meta){
+function addFileItem(id, dir, name, meta, thumbUrl){
   const empty = $('file-empty'); if(empty) empty.remove();
   const el = document.createElement('div');
   el.className = 'file-item ' + dir; el.id = fileItemId(id);
   el.innerHTML = `
     <div class="file-top">
-      <span class="fico">${icon(dir === 'out' ? 'upload' : 'download')}</span>
-      <div class="fbody"><div class="fname">${esc(name)}</div><div class="fmeta">${esc(meta)}</div></div>
+      <span class="fico" id="fico-${id}">${icon(dir === 'out' ? 'upload' : 'download')}</span>
+      <div class="fbody"><div class="fname">${esc(name)}</div><div class="fmeta" id="fmeta-${id}">${esc(meta)}</div></div>
       <div class="fpct" id="pct-${id}">0%</div>
+      <button class="icon-btn sm fcancel" id="fcancel-${id}" title="Cancel" aria-label="Cancel transfer">${icon('x', 'sm')}</button>
     </div>
     <div class="progress-track"><div class="progress-fill" id="prog-${id}" style="width:0%"></div></div>`;
+  el.querySelector('.fcancel').addEventListener('click', ()=> dir === 'out' ? cancelTransfer(id) : cancelIncoming(id, 'Cancelled'));
   $('file-list').prepend(el);
+  if(thumbUrl) setFileThumb(id, thumbUrl, name);
+  updateFileTools();
 }
-function renderOutgoingFileItem(id, name, size){ addFileItem(id, 'out', name, `${fmtBytes(size)} · sending to everyone`); }
+function setFileThumb(id, url, name){
+  const f = $('fico-' + id);
+  if(!f) return;
+  const img = document.createElement('img');
+  img.className = 'fthumb'; img.src = url; img.alt = name;
+  img.addEventListener('click', ()=> openLightbox(url, name));
+  f.replaceWith(img); img.id = 'fico-' + id;
+}
+function renderOutgoingFileItem(id, file, to){
+  const isImg = /^image\//.test(file.type);
+  addFileItem(id, 'out', file.name, `${fmtBytes(file.size)} · sending to ${to ? nameOfId(to) : 'everyone'}`, isImg ? URL.createObjectURL(file) : null);
+}
 function renderIncomingFileItem(id, t){ addFileItem(id, 'in', t.name, `${fmtBytes(t.size)} · from ${t.senderName}`); bumpFileCount(); }
 
+function trackProgress(id, bytes, total){
+  let m = transferMeta.get(id);
+  if(!m){ m = { start: performance.now(), last: 0, base: null }; transferMeta.set(id, m); }
+  const now = performance.now();
+  if(now - m.last < 250 && bytes < total) return;
+  m.last = now;
+  const el = $('fmeta-' + id);
+  if(!el) return;
+  if(m.base === null) m.base = el.textContent;
+  const sec = (now - m.start) / 1000, bps = sec > 0.4 ? bytes / sec : 0;
+  el.textContent = m.base + (bps ? ` · ${fmtSpeed(bps)}` : '') + (bps && bytes < total ? ` · ${fmtEta((total - bytes) / bps)} left` : '');
+}
 function updateFileProgress(id, pct, state, label){
   const bar = $('prog-' + id), txt = $('pct-' + id), item = $(fileItemId(id));
   if(pct != null && bar) bar.style.width = pct + '%';
   if(txt) txt.textContent = label || (pct != null ? pct + '%' : '');
-  if(item && state) item.classList.add(state);
+  if(item && state){ item.classList.add(state); const c = $('fcancel-' + id); if(c) c.remove(); }
+  const h = imageRows.get(id); if(h && pct != null && state !== 'done') h.setProgress(pct);
+  if(state){ const m = transferMeta.get(id), el = $('fmeta-' + id); if(m && el && m.base !== null) el.textContent = m.base; transferMeta.delete(id); updateFileTools(); }
 }
 
 function completeIncomingTransfer(id){
@@ -2963,17 +3749,272 @@ function completeIncomingTransfer(id){
   if(t.received !== t.totalChunks){
     updateFileProgress(id, null, 'failed', 'Incomplete');
     showToast(`${t.name} arrived incomplete`, 'err');
+    const h = imageRows.get(id); if(h) h.fail('Incomplete');
     return;
   }
   const url = URL.createObjectURL(new Blob(t.chunks, { type: t.mime }));
   const top = document.querySelector('#' + fileItemId(id) + ' .file-top');
-  if(top){
+  if(top && $('pct-' + id)){
     const a = document.createElement('a');
     a.className = 'dl'; a.href = url; a.download = t.name; a.innerHTML = icon('download', 'sm') + 'Download';
     top.replaceChild(a, $('pct-' + id));
   }
+  if(/^image\//.test(t.mime)){ setFileThumb(id, url, t.name); const h = imageRows.get(id); if(h) h.setSrc(url); }
   updateFileProgress(id, 100, 'done');
-  showToast(`Received ${t.name}`, 'ok');
+  if(!(t.inline && imageRows.has(id))) showToast(`Received ${t.name}`, 'ok');
+}
+
+function updateFileTools(){
+  const done = document.querySelectorAll('#file-list .file-item.done, #file-list .file-item.failed, #file-list .file-item.cancelled').length;
+  $('save-all-btn').style.display = document.querySelectorAll('#file-list a.dl').length >= 2 ? '' : 'none';
+  $('clear-done-btn').style.display = done ? '' : 'none';
+}
+function saveAllReceived(){
+  const links = [...document.querySelectorAll('#file-list a.dl')];
+  links.forEach((a, i)=> setTimeout(()=> a.click(), i * 350));
+  showToast(`Saving ${links.length} files…`, 'ok');
+}
+function clearFinished(){
+  document.querySelectorAll('#file-list .file-item.done, #file-list .file-item.failed, #file-list .file-item.cancelled').forEach(el => el.remove());
+  if(!$('file-list').children.length) $('file-list').innerHTML = '<div class="empty" id="file-empty">No transfers yet.</div>';
+  updateFileTools();
+}
+
+/* =========================================================
+   QUALITY OF LIFE: settings, command palette, shortcuts, notifications, latency, typing, export, PWA
+   ========================================================= */
+const SETTINGS_DEFAULTS = { sound: true, notify: false, compact: false };
+let settings = { ...SETTINGS_DEFAULTS };
+try{ settings = { ...SETTINGS_DEFAULTS, ...JSON.parse(lsGet('localshare_settings') || '{}') }; }catch(e){ /* defaults */ }
+function applySettings(){ document.documentElement.dataset.density = settings.compact ? 'compact' : 'comfortable'; }
+function saveSettings(){ lsSet('localshare_settings', JSON.stringify(settings)); applySettings(); }
+applySettings();
+
+/* ---- tiny modal manager ---- */
+const modalStack = [];
+function openModal(id){
+  const el = $(id);
+  el.classList.remove('hidden');
+  if(!modalStack.includes(id)) modalStack.push(id);
+  const f = el.querySelector('input[type=text], .btn.primary');
+  setTimeout(()=>{ if(f) f.focus(); }, 30);
+}
+function closeModal(id){
+  $(id).classList.add('hidden');
+  const i = modalStack.indexOf(id);
+  if(i >= 0) modalStack.splice(i, 1);
+}
+
+/* ---- theme (system / dark / light) ---- */
+function currentThemeChoice(){ const s = lsGet('localshare_theme'); return s === 'dark' || s === 'light' ? s : 'system'; }
+function setTheme(choice){
+  if(choice === 'system'){ try{ localStorage.removeItem('localshare_theme'); }catch(e){} document.documentElement.setAttribute('data-theme', window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); }
+  else { lsSet('localshare_theme', choice); document.documentElement.setAttribute('data-theme', choice); }
+  syncSettingsUI();
+}
+function toggleTheme(){
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  setTheme(next);
+}
+
+/* ---- settings dialog ---- */
+function syncSettingsUI(){
+  $('set-name').value = myName || '';
+  $('set-sound').checked = !!settings.sound;
+  $('set-notify').checked = !!settings.notify && 'Notification' in window && Notification.permission === 'granted';
+  $('set-compact').checked = !!settings.compact;
+  document.querySelectorAll('#set-theme button').forEach(b => b.classList.toggle('on', b.dataset.theme === currentThemeChoice()));
+  $('set-install-row').style.display = installEvent ? '' : 'none';
+}
+function openSettings(){ syncSettingsUI(); openModal('settings-modal'); }
+$('set-sound').addEventListener('change', e=>{ settings.sound = e.target.checked; saveSettings(); if(settings.sound) beep(); });
+$('set-compact').addEventListener('change', e=>{ settings.compact = e.target.checked; saveSettings(); });
+$('set-notify').addEventListener('change', async e=>{
+  if(!e.target.checked){ settings.notify = false; saveSettings(); return; }
+  if(!('Notification' in window)){ showToast('This browser does not support desktop notifications', 'warn'); e.target.checked = false; return; }
+  let perm = Notification.permission;
+  if(perm === 'default') perm = await Notification.requestPermission();
+  if(perm !== 'granted'){ showToast('Notifications are blocked — allow them in your browser\'s site settings', 'warn'); e.target.checked = false; settings.notify = false; }
+  else settings.notify = true;
+  saveSettings();
+});
+document.querySelectorAll('#set-theme button').forEach(b => b.addEventListener('click', ()=> setTheme(b.dataset.theme)));
+$('set-name').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); saveName(); } });
+
+function resetLocalData(){
+  if(!confirm('Forget your name, settings, terminal history and aliases on this device?')) return;
+  for(const k of ['localshare_display_name', 'localshare_settings', 'localshare_theme', 'netterm_history', 'netterm_aliases']){ try{ localStorage.removeItem(k); }catch(e){} }
+  showToast('Local data cleared', 'ok');
+  settings = { ...SETTINGS_DEFAULTS }; applySettings(); syncSettingsUI();
+}
+
+/* ---- rename (broadcast so everyone updates immediately) ---- */
+function saveName(){
+  const next = cleanName($('set-name').value);
+  if(!$('set-name').value.trim()){ showToast('Enter a name first', 'warn'); return; }
+  if(next === myName){ closeModal('settings-modal'); return; }
+  myName = next; lsSet('localshare_display_name', myName);
+  if(hasEnteredApp){
+    sendPayload({ type:'presence', data:{ id: myId, name: myName, host: isHost } });
+    $('sidebar-foot').innerHTML = avatar(myName, 36) + `<div><b>${esc(myName)}</b><small>${isHost ? 'Hosting' : 'Connected'}</small></div>`;
+    $('dash-greeting').textContent = 'Hi, ' + myName;
+    ttyUpdatePrompt(); renderPeerList();
+    if(nearby.on) nearbyAnnounce(false);
+  }
+  closeModal('settings-modal');
+  showToast(`You are now “${myName}”`, 'ok');
+}
+
+/* ---- sound + desktop notifications ---- */
+let audioCtx = null;
+function beep(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    [[660, 0], [880, 0.09]].forEach(([f, d])=>{
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(0.07, t + d + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.18);
+      o.connect(g); g.connect(audioCtx.destination); o.start(t + d); o.stop(t + d + 0.2);
+    });
+  }catch(e){ /* audio not available */ }
+}
+function notifyIncoming(name, text){
+  if(settings.sound) beep();
+  if(settings.notify && document.hidden && 'Notification' in window && Notification.permission === 'granted'){
+    try{
+      const n = new Notification(name, { body: String(text).slice(0, 140), tag: 'localshare-chat' });
+      n.onclick = ()=>{ window.focus(); switchView('chat'); n.close(); };
+    }catch(e){ /* ignore */ }
+  }
+}
+
+/* ---- command palette ---- */
+let palSel = 0, palItems = [];
+function paletteActions(){
+  const A = [];
+  const add = (label, hint, icon, run) => A.push({ label, hint, icon, run });
+  const views = [['dashboard', 'Dashboard', 'dashboard'], ['chat', 'Chat', 'chat'], ['text', 'Shared document', 'doc'], ['files', 'Files', 'folder'], ['draw', 'Whiteboard', 'pen'], ['terminal', 'Terminal', 'terminal']];
+  const navOrder = [...document.querySelectorAll('.nav-btn')].map(b => b.dataset.view);
+  for(const [id, label, icon] of views) if(navOrder.includes(id)) add('Go to ' + label, 'Alt+' + (navOrder.indexOf(id) + 1), icon, ()=> switchView(id));
+  if(isHost) add('Invite someone (QR / code)', '', 'user-plus', openInvite);
+  add('Share my clipboard with everyone', '', 'clipboard', shareClipboard);
+  add('Send a file or image…', '', 'paperclip', ()=>{ switchView('files'); $('file-input').click(); });
+  add('Open settings', '', 'settings', openSettings);
+  add('Change my name', '', 'user', openSettings);
+  add('Toggle dark / light theme', '', 'contrast', toggleTheme);
+  add('Export chat as text', '', 'download', ()=> exportChat('txt'));
+  add('Download the shared document', '', 'download', ()=> downloadDoc());
+  add('Keyboard shortcuts', '?', 'keyboard', ()=> openModal('shortcuts-modal'));
+  if(installEvent) add('Install localShare as an app', '', 'download', installApp);
+  add('Leave session', '', 'logout', leaveSession);
+  return A;
+}
+function renderPalette(){
+  const q = $('pal-input').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  palItems = paletteActions().filter(a => q.every(w => a.label.toLowerCase().includes(w)));
+  palSel = Math.min(palSel, Math.max(0, palItems.length - 1));
+  const list = $('pal-list');
+  list.innerHTML = '';
+  if(!palItems.length){ list.innerHTML = '<div class="pal-empty">Nothing matches that.</div>'; return; }
+  palItems.forEach((a, i)=>{
+    const b = document.createElement('button');
+    b.className = 'pal-item' + (i === palSel ? ' sel' : '');
+    b.setAttribute('role', 'option');
+    b.innerHTML = icon(a.icon) + `<span>${esc(a.label)}</span>` + (a.hint ? `<span class="hint">${esc(a.hint)}</span>` : '');
+    b.addEventListener('click', ()=> runPalette(i));
+    b.addEventListener('mousemove', ()=>{ if(palSel !== i){ palSel = i; markPalette(); } });
+    list.appendChild(b);
+  });
+}
+function markPalette(){ [...$('pal-list').children].forEach((el, i)=>{ el.classList.toggle('sel', i === palSel); if(i === palSel) el.scrollIntoView({ block: 'nearest' }); }); }
+function runPalette(i){ const a = palItems[i]; if(!a) return; closeModal('palette-modal'); setTimeout(()=> a.run(), 0); }
+function openPalette(){ if(!hasEnteredApp) return; palSel = 0; $('pal-input').value = ''; renderPalette(); openModal('palette-modal'); }
+$('pal-input').addEventListener('input', ()=>{ palSel = 0; renderPalette(); });
+$('pal-input').addEventListener('keydown', e=>{
+  if(e.key === 'ArrowDown'){ e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); markPalette(); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); palSel = Math.max(0, palSel - 1); markPalette(); }
+  else if(e.key === 'Enter'){ e.preventDefault(); runPalette(palSel); }
+});
+
+/* ---- global shortcuts ---- */
+document.addEventListener('keydown', e=>{
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  if((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k' && e.target.id !== 'term-input'){
+    if(hasEnteredApp){ e.preventDefault(); modalStack.includes('palette-modal') ? closeModal('palette-modal') : openPalette(); }
+    return;
+  }
+  if(e.key === 'Escape' && modalStack.length){ closeModal(modalStack[modalStack.length - 1]); return; }
+  if(!hasEnteredApp || modalStack.length) return;
+  if(e.altKey && !e.ctrlKey && !e.metaKey && /^[1-9]$/.test(e.key)){
+    const v = [...document.querySelectorAll('.nav-btn')].map(b => b.dataset.view)[Number(e.key) - 1];
+    if(v){ e.preventDefault(); switchView(v); }
+    return;
+  }
+  if(typing) return;
+  if(e.key === '?'){ e.preventDefault(); openModal('shortcuts-modal'); }
+  else if(e.key === '/'){ e.preventDefault(); switchView('chat'); $('chat-input').focus(); }
+});
+
+/* ---- live link quality (round-trip time to each directly connected device) ---- */
+function ctrlSend(key, msg){
+  const p = peers.get(key);
+  if(p && p.dc && p.dc.readyState === 'open'){ try{ p.dc.send(JSON.stringify(msg)); }catch(e){ /* closing */ } }
+}
+setInterval(()=>{
+  for(const [key, p] of peers) if(p.status === 'online' || p.status === 'unstable') ctrlSend(key, { type:'ping', data:{ t: performance.now() } });
+}, 5000);
+const rttClass = ms => ms < 40 ? 'good' : ms < 150 ? 'mid' : 'bad';
+function rttLabel(p){ return p.rtt === null || p.rtt === undefined ? '' : `<span class="rtt ${rttClass(p.rtt)}">${p.rtt < 10 ? p.rtt.toFixed(1) : Math.round(p.rtt)} ms</span>`; }
+
+/* ---- typing indicator ---- */
+const typers = new Map(); // id -> { name, t }
+let lastTypingSent = 0;
+$('chat-input').addEventListener('input', ()=>{
+  if(!hasEnteredApp || !$('chat-input').value.trim()) return;
+  const now = Date.now();
+  if(now - lastTypingSent > 2500){ lastTypingSent = now; sendPayload({ type:'typing', data:{ id: myId, name: myName } }); }
+});
+function renderTyping(){
+  const now = Date.now();
+  for(const [id, t] of typers) if(now - t.t > 4000) typers.delete(id);
+  const names = [...typers.values()].map(t => t.name);
+  const el = $('typing-line');
+  if(!names.length){ el.innerHTML = ''; return; }
+  const who = names.length === 1 ? `${esc(names[0])} is typing` : names.length === 2 ? `${esc(names[0])} and ${esc(names[1])} are typing` : 'Several people are typing';
+  el.innerHTML = `<span class="dots"><i></i><i></i><i></i></span><span>${who}</span>`;
+}
+setInterval(renderTyping, 1000);
+
+/* ---- chat export + downloads ---- */
+const chatArchive = []; // { name, text, ts, me }
+function downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+function stamp(){ return new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-'); }
+function exportChat(kind){
+  if(!chatArchive.length){ showToast('No messages to export yet', 'warn'); return; }
+  if(kind === 'json') downloadBlob(new Blob([JSON.stringify(chatArchive.map(m => ({ time: new Date(m.ts).toISOString(), from: m.me ? myName : m.name, text: m.text })), null, 2)], { type: 'application/json' }), `localshare-chat-${stamp()}.json`);
+  else downloadBlob(new Blob([chatArchive.map(m => `[${new Date(m.ts).toLocaleString()}] ${m.me ? myName : m.name}: ${m.text}`).join('\n') + '\n'], { type: 'text/plain' }), `localshare-chat-${stamp()}.txt`);
+  showToast('Chat exported', 'ok');
+}
+
+/* ---- installable app (PWA) ---- */
+let installEvent = null;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installEvent = e; syncSettingsUI(); });
+window.addEventListener('appinstalled', ()=>{ installEvent = null; syncSettingsUI(); showToast('localShare installed', 'ok'); });
+async function installApp(){
+  if(!installEvent){ showToast('Install is not available here — use your browser\'s menu › Install app', 'warn'); return; }
+  installEvent.prompt();
+  try{ await installEvent.userChoice; }catch(e){ /* dismissed */ }
+  installEvent = null; syncSettingsUI();
+}
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{ /* offline cache is optional */ }); });
 }
 
 /* =========================================================

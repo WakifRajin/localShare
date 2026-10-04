@@ -73,16 +73,39 @@ from a branch → `main` → `/docs`**. It runs in *online* mode there.
 
 ## Features
 
-- Live chat with unread badges and delivery confirmation, a shared document
-  that merges simultaneous edits, and drag-and-drop file transfer (binary
-  chunks, any number of participants).
-- The host relays between participants, so everyone sees the same roster, and
-  joins/leaves are announced.
+**Talk**
+- Chat with delivery confirmation, unread badges, typing indicators, search and
+  export (.txt / .json). Messages support `**bold**`, `` `code` ``, fenced code
+  blocks, links (http/https only — everything else stays plain text) and
+  `@mentions` that highlight and notify the person mentioned.
+- **Paste, drop or attach images** and they appear inline in the chat (click to
+  enlarge). **Share your clipboard** with one click as a copyable card.
+- Optional message sound and desktop notifications; rename yourself any time.
+
+**Share**
+- Drag-and-drop (or paste) files anywhere in the app. Send to everyone or to
+  **one person** — addressed transfers are forwarded only to the recipient.
+  Live speed and time remaining, cancel mid-transfer, image thumbnails, *Save
+  all* and *Clear finished*.
+- **Shared document** that merges simultaneous edits instead of overwriting
+  them, with Markdown preview, word/line counts, adjustable text size, and
+  Open / Save to move text in and out.
+- **Whiteboard**: pen, eraser, colours, sizes, undo, clear and PNG export;
+  strokes stream live and late joiners get the existing drawing.
+
+**Stay connected**
 - **Self-healing connections:** if a device's link drops (phone slept, Wi-Fi
   hiccup) it reconnects on its own through a private encrypted room named after
   the session; unsent messages are resent and missed chat is replayed. Phones
   keep the screen awake during a session.
-- Dark and light themes; works on phones (tab bar layout).
+- Live round-trip time to every directly connected device.
+
+**Everyday polish**
+- **Command palette** (`Ctrl+K`) and keyboard shortcuts (`?` lists them).
+- **Installable offline app** (PWA): add it to your home screen or desktop, and
+  it opens even without a network.
+- Settings for theme (system / dark / light), compact layout, sounds and
+  notifications; dark and light themes; works on phones (tab bar layout).
 - A real **network diagnostics terminal** (below).
 
 ## Network terminal (NETTERM)
@@ -153,3 +176,7 @@ npm test          # parsers (Linux/macOS/Windows output), safety guards, pipelin
 - `docs/index.html` — the app itself (includes an inlined MIT-licensed
   [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) for the QR code);
   after changing help text run `node terminal/build-web.js`
+- `docs/sw.js`, `docs/manifest.webmanifest`, `docs/icon*.{svg,png}` — the installable offline app
+  (regenerate the PNGs with `node scripts/make-icons.js`)
+- `test/` and `terminal/test/` — `npm test` runs everything: terminal parsers and safety guards,
+  the page's pure logic (rich text, Markdown, merge), service-worker rules and static-file safety
